@@ -13,7 +13,8 @@ endif()
 find_package(OpenMP REQUIRED)
 
 add_library(themis src/main.cpp)
-target_include_directories(themis PUBLIC include/themis/io.hpp)
+target_include_directories(themis PUBLIC include/)
+
 target_link_libraries(themis PUBLIC OpenMP::OpenMP_CXX)
 
 
