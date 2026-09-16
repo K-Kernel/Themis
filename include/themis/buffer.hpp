@@ -10,7 +10,7 @@ struct Buffer {
   std::shared_ptr<void> file_buffer;
 };
 
-Buffer read_data(std::string path) {
+inline Buffer read_data(std::string path) {
   std::ifstream dataset(path, std::ios_base::binary);
 
   dataset.seekg(0, std::ios::end);
