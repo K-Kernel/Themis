@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <span>
+#include <stdexcept>
 #include <vector>
 
 struct Buffer {
@@ -11,15 +12,19 @@ struct Buffer {
 };
 
 inline Buffer read_csv(std::string path) {
-  std::ifstream dataset(path, std::ios_base::binary);
+  std::ifstream csv(path, std::ios_base::binary);
 
-  dataset.seekg(0, std::ios::end);
-  auto dataset_size = dataset.tellg();
+  if (!csv) {
+    std::runtime_error("couldn't open the file : " + path);
+  }
 
-  dataset.seekg(0);
-  auto storage = std::make_shared<std::vector<char>>(dataset_size);
+  csv.seekg(0, std::ios::end);
+  auto csv_size = csv.tellg();
 
-  dataset.read(storage->data(), storage->size());
+  csv.seekg(0);
+  auto storage = std::make_shared<std::vector<char>>(csv_size);
+
+  csv.read(storage->data(), storage->size());
 
   return Buffer{std::span<const char>(*storage), storage};
 }
