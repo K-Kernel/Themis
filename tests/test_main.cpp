@@ -1,46 +1,87 @@
-#include <cassert>
-#include <span>
-#include <string_view>
-#include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <cassert>
 #include <doctest/doctest.h>
-#include <filesystem>
+#include <string>
+#include <string_view>
 #include <themis/buffer.hpp>
 #include <themis/io.hpp>
 #include <themis/table.hpp>
+#include <vector>
 
-TEST_CASE("Basic addition") { CHECK(1 + 1 == 2); }
+using Grid = std::vector<std::vector<std::string>>;
 
-TEST_CASE("Load a small file") {
-  Buffer data = read_data("data/test_data1.txt");
-  REQUIRE(data.buffer_view.size() ==
-          std::filesystem::file_size("data/test_data1.txt"));
+Table load(const std::string &name) {
+  return slice_csv(read_csv("data/" + name));
 }
 
-TEST_CASE("Test table struct") {
-  Buffer buffer = read_data("data/test_data1.txt");
+void check_grid(const Table &t, const Grid &want) {
+  REQUIRE(t.ncols() > 0);
+  CHECK(t.ncols() == want[0].size());
+  CHECK(t.nrows() == want.size());
+  if (t.ncols() != want[0].size() || t.nrows() != want.size()) {
+    return;
+  }
 
-  std::string_view data(buffer.buffer_view.data(), buffer.buffer_view.size());
-
-  std::vector<std::string_view> header{"name", "age", "score"};
-  std::vector<std::string_view> cells{};
-
-  cells.push_back(data.substr(0, 5));
-  cells.push_back(data.substr(6, 2));
-  cells.push_back(data.substr(9, 4));
-
-  Table table{buffer, header, cells, 3};
-  CHECK(table.ncols() == 3);
-  CHECK(table.nrows() == 1);
-  CHECK(table.at(0, 0) == "Alice");
-  CHECK(table.at(0, 1) == "25");
-  CHECK(table.at(0, 2) == "91.5");
+  for (size_t r = 0; r < want.size(); ++r) {
+    for (size_t c = 0; c < want[r].size(); ++c) {
+      INFO("cell (" << r << "," << c << ")");
+      CHECK(std::string(t.at(r, c)) == want[r][c]);
+    }
+  }
 }
 
-TEST_CASE("Testing slice function") {
-  Buffer buffer = read_data("data/test_data1.txt");
-  Table table = slice_csv(buffer);
-  REQUIRE(table.ncols() == 3);
-  REQUIRE(table.nrows() == 5);
-  REQUIRE(table.at(4, 2) == "89.9");
+TEST_CASE("Quoted delimiter") {
+  Table t = load("quoted_delimiter.csv");
+  check_grid(t, {{"a", "b,c", "d"}, {"1", "2,3", "4"}});
+}
+
+TEST_CASE("Escaped quote") {
+  Table t = load("quoted_delimiter.csv");
+  check_grid(t, {{"a", "he said\"hi\"", "b"}});
+}
+
+TEST_CASE("new line inside quotes") {
+  Table t = load("newline_in_quotes.csv");
+  check_grid(t, {{"a", "line1\nline2", "c"}});
+}
+
+TEST_CASE("CRLF line ending") {
+  Table t = load("crlf.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", "3"}});
+  CHECK(t.at(0, 0).size() == 1);
+}
+
+TEST_CASE("Bom") {
+  Table t = load("bom.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", "3"}});
+  CHECK(t.at(0, 0).size() == 1);
+}
+
+TEST_CASE("Trailing delimiter") {
+  Table t = load("trailing_delim.csv");
+  check_grid(t, {{"a", "b", ""}, {"1", "2", ""}});
+}
+
+TEST_CASE("Ragged rows") {
+  Table t = load("ragged.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", ""}, {"4", "5", "6"}});
+
+  REQUIRE(t.errors.size() == 2);
+  REQUIRE(t.errors[0].row == 1);
+  REQUIRE(t.errors[0].kind == Table::error_kind::ShortRow);
+  REQUIRE(t.errors[1].kind == 2);
+  REQUIRE(t.errors[1].kind == Table::error_kind::LongRow);
+}
+
+TEST_CASE("No trailing newline") {
+  Table t = load("no_trailing_nl.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", "3"}});
+}
+
+TEST_CASE("Clean file unaffected") {
+  Table t = slice_csv(read_csv("data/test_data1.txt"));
+  CHECK(t.ncols() == 3);
+  CHECK(t.nrows() == 5);
+  CHECK(t.at(0, 0) == "Alice");
+  CHECK(t.at(4, 2) == "89.9");
 }
