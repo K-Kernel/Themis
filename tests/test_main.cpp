@@ -36,8 +36,8 @@ TEST_CASE("Quoted delimiter") {
 }
 
 TEST_CASE("Escaped quote") {
-  Table t = load("quoted_delimiter.csv");
-  check_grid(t, {{"a", "he said\"hi\"", "b"}});
+  Table t = load("escaped_quote.csv");
+  check_grid(t, {{"a", "he said \"hi\"", "b"}});
 }
 
 TEST_CASE("new line inside quotes") {
