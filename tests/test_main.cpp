@@ -69,7 +69,7 @@ TEST_CASE("Ragged rows") {
   REQUIRE(t.errors.size() == 2);
   REQUIRE(t.errors[0].row == 1);
   REQUIRE(t.errors[0].kind == Table::error_kind::ShortRow);
-  REQUIRE(t.errors[1].kind == 2);
+  REQUIRE(t.errors[1].row == 2);
   REQUIRE(t.errors[1].kind == Table::error_kind::LongRow);
 }
 

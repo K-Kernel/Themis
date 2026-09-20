@@ -29,26 +29,51 @@ inline Table slice_csv(Buffer csv) {
   bool using_scratch{false};
   size_t copy_start{0};
 
+  size_t current_row_cells{0};
+  // TODO: implement this
+  size_t col{0};
+  size_t row{0};
+
   for (size_t i{0}; i < whole.size(); ++i) {
 
     // TODO: Change this to a switch
     if (state == State::FieldStart) {
       if (whole[i] == ',') {
         table.cells.push_back(whole.substr(field_start, i - field_start));
+        ++current_row_cells;
         field_start = i + 1;
       }
 
-      if (whole[i] == '\n' && whole[i - 1]) {
+      if (whole[i] == '\n') {
         if (whole[i - 1] == '\r') {
           table.cells.push_back(whole.substr(field_start, i - field_start - 1));
+          ++current_row_cells;
+
         } else {
           table.cells.push_back(whole.substr(field_start, i - field_start));
+          ++current_row_cells;
         }
 
         if (first_record) {
-          table.number_of_columns = table.cells.size();
+          table.number_of_columns = current_row_cells;
           first_record = false;
         }
+
+        if (current_row_cells < table.number_of_columns) {
+          while (current_row_cells < table.number_of_columns) {
+            table.cells.push_back("");
+            ++current_row_cells;
+          }
+          table.errors.push_back({row, col, Table::ShortRow});
+        } else if (current_row_cells > table.number_of_columns) {
+          while (current_row_cells > table.number_of_columns) {
+            table.cells.pop_back();
+            --current_row_cells;
+          }
+          table.errors.push_back({row, col, Table::LongRow});
+        };
+        ++row;
+        current_row_cells = 0;
 
         field_start = i + 1;
       }
@@ -85,8 +110,10 @@ inline Table slice_csv(Buffer csv) {
           std::string_view cell(table.scratch.data() + scratch_field_start,
                                 table.scratch.size() - scratch_field_start);
           table.cells.push_back(cell);
+          ++current_row_cells;
         } else {
           table.cells.push_back(whole.substr(field_start, i - field_start - 1));
+          ++current_row_cells;
         }
 
         field_start = i + 1;
