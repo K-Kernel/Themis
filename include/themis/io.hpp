@@ -5,6 +5,12 @@
 #include <themis/table.hpp>
 #include <vector>
 
+inline void end_field(Table &table, std::string_view field,
+                      size_t &current_row_cells) {
+  table.cells.push_back(field);
+  ++current_row_cells;
+}
+
 inline Table slice_csv(Buffer csv) {
   Table table{csv, {}, {}, {}, 0, {}};
   std::string_view whole{csv.buffer_view.data(), csv.buffer_view.size()};
@@ -39,13 +45,13 @@ inline Table slice_csv(Buffer csv) {
     // TODO: Change this to a switch
     if (state == State::FieldStart) {
       if (whole[i] == ',') {
-        table.cells.push_back(whole.substr(field_start, i - field_start));
-        ++current_row_cells;
+        end_field(table, whole.substr(field_start, i - field_start),
+                  current_row_cells);
         field_start = i + 1;
       }
 
       if (whole[i] == '\n') {
-        if (whole[i - 1] == '\r') {
+        if (whole[i - 1] == '\r' && i != 0) {
           table.cells.push_back(whole.substr(field_start, i - field_start - 1));
           ++current_row_cells;
 
@@ -112,8 +118,8 @@ inline Table slice_csv(Buffer csv) {
           table.cells.push_back(cell);
           ++current_row_cells;
         } else {
-          table.cells.push_back(whole.substr(field_start, i - field_start - 1));
-          ++current_row_cells;
+          end_field(table, whole.substr(field_start, i - field_start - 1),
+                    current_row_cells);
         }
 
         field_start = i + 1;
