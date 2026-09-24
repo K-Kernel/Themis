@@ -11,6 +11,29 @@ inline void end_field(Table &table, std::string_view field,
   ++current_row_cells;
 }
 
+inline void end_record(Table &table, bool &first_record,
+                       size_t current_row_cells, size_t row, size_t col) {
+
+  if (first_record) {
+    table.number_of_columns = current_row_cells;
+    first_record = false;
+  }
+
+  if (current_row_cells < table.number_of_columns) {
+    while (current_row_cells < table.number_of_columns) {
+      table.cells.push_back("");
+      ++current_row_cells;
+    }
+    table.errors.push_back({row, col, Table::ShortRow});
+  } else if (current_row_cells > table.number_of_columns) {
+    while (current_row_cells > table.number_of_columns) {
+      table.cells.pop_back();
+      --current_row_cells;
+    }
+    table.errors.push_back({row, col, Table::LongRow});
+  };
+}
+
 inline Table slice_csv(Buffer csv) {
   Table table{csv, {}, {}, {}, 0, {}};
   std::string_view whole{csv.buffer_view.data(), csv.buffer_view.size()};
@@ -27,7 +50,7 @@ inline Table slice_csv(Buffer csv) {
   size_t field_start{0};
   bool first_record = true;
 
-  enum class State { FieldStart, Quoted, QuoteInQuoted };
+  enum class State { FieldStart, Unquoted, Quoted, QuoteInQuoted };
   State state{State::FieldStart};
 
   table.scratch.reserve(whole.size());
@@ -44,50 +67,55 @@ inline Table slice_csv(Buffer csv) {
 
     // TODO: Change this to a switch
     if (state == State::FieldStart) {
+
+      if (whole[i] == '"') {
+        field_start = i + 1;
+        state = State::Quoted;
+        copy_start = field_start;
+      } else if (whole[i] == ',') {
+        end_field(table, whole.substr(field_start, i - field_start),
+                  current_row_cells);
+        field_start = i + 1;
+      } else if (whole[i] == '\n') {
+        if (whole[i - 1] == '\r') {
+          end_field(table, whole.substr(field_start, i - field_start - 1),
+                    current_row_cells);
+          end_record(table, first_record, current_row_cells, row, col);
+
+        } else {
+          end_field(table, whole.substr(field_start, i - field_start),
+                    current_row_cells);
+          end_record(table, first_record, current_row_cells, row, col);
+        }
+
+        ++row;
+        current_row_cells = 0;
+        field_start = i + 1;
+      } else {
+        state = State::Unquoted;
+      }
+
+    } else if (state == State::Unquoted) {
       if (whole[i] == ',') {
         end_field(table, whole.substr(field_start, i - field_start),
                   current_row_cells);
         field_start = i + 1;
-      }
-
-      if (whole[i] == '\n') {
-        if (whole[i - 1] == '\r' && i != 0) {
-          table.cells.push_back(whole.substr(field_start, i - field_start - 1));
-          ++current_row_cells;
+        state = State::FieldStart;
+      } else if (whole[i] == '\n' && i > 0) {
+        if (whole[i - 1] == '\r') {
+          end_field(table, whole.substr(field_start, i - field_start - 1),
+                    current_row_cells);
+          end_record(table, first_record, current_row_cells, row, col);
 
         } else {
-          table.cells.push_back(whole.substr(field_start, i - field_start));
-          ++current_row_cells;
+          end_field(table, whole.substr(field_start, i - field_start),
+                    current_row_cells);
+          end_record(table, first_record, current_row_cells, row, col);
         }
 
-        if (first_record) {
-          table.number_of_columns = current_row_cells;
-          first_record = false;
-        }
-
-        if (current_row_cells < table.number_of_columns) {
-          while (current_row_cells < table.number_of_columns) {
-            table.cells.push_back("");
-            ++current_row_cells;
-          }
-          table.errors.push_back({row, col, Table::ShortRow});
-        } else if (current_row_cells > table.number_of_columns) {
-          while (current_row_cells > table.number_of_columns) {
-            table.cells.pop_back();
-            --current_row_cells;
-          }
-          table.errors.push_back({row, col, Table::LongRow});
-        };
         ++row;
         current_row_cells = 0;
-
         field_start = i + 1;
-      }
-
-      if (whole[i] == '"') {
-        field_start = i + 1;
-        copy_start = field_start;
-        state = State::Quoted;
       }
 
     } else if (state == State::Quoted) {
@@ -107,7 +135,7 @@ inline Table slice_csv(Buffer csv) {
         copy_start = i + 1;
         state = State::Quoted;
 
-      } else if (whole[i] == ',' || whole[i] == '\n') {
+      } else if (whole[i] == ',') {
 
         if (using_scratch) {
           table.scratch.insert(table.scratch.end(), whole.begin() + copy_start,
@@ -115,11 +143,35 @@ inline Table slice_csv(Buffer csv) {
 
           std::string_view cell(table.scratch.data() + scratch_field_start,
                                 table.scratch.size() - scratch_field_start);
-          table.cells.push_back(cell);
-          ++current_row_cells;
+          end_field(table, cell, current_row_cells);
         } else {
           end_field(table, whole.substr(field_start, i - field_start - 1),
                     current_row_cells);
+        }
+
+        field_start = i + 1;
+        state = State::FieldStart;
+        using_scratch = false;
+        continue;
+      } else if (whole[i] == '\n') {
+        if (whole[i - 1] == '\r') {
+          end_field(table, whole.substr(field_start, i - field_start - 2),
+                    current_row_cells);
+          end_record(table, first_record, current_row_cells, row, col);
+        }
+
+        if (using_scratch) {
+          table.scratch.insert(table.scratch.end(), whole.begin() + copy_start,
+                               whole.begin() + i - 1);
+
+          std::string_view cell(table.scratch.data() + scratch_field_start,
+                                table.scratch.size() - scratch_field_start);
+          end_field(table, cell, current_row_cells);
+          end_record(table, first_record, current_row_cells, row, col);
+        } else {
+          end_field(table, whole.substr(field_start, i - field_start - 1),
+                    current_row_cells);
+          end_record(table, first_record, current_row_cells, row, col);
         }
 
         field_start = i + 1;
@@ -131,8 +183,9 @@ inline Table slice_csv(Buffer csv) {
   }
 
   if (field_start < whole.size()) {
-    table.cells.push_back(
-        whole.substr(field_start, whole.size() - field_start));
+    end_field(table, whole.substr(field_start, whole.size() - field_start),
+              current_row_cells);
+    end_record(table, first_record, current_row_cells, row, col);
   }
 
   return table;

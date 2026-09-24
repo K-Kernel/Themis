@@ -25,7 +25,17 @@ FILES = {
     "ragged.csv":           b'a,b,c\n1,2\n4,5,6,7\n',
     # 8. no trailing newline (regression guard)
     "no_trailing_nl.csv":   b'a,b,c\n1,2,3',
+    #9. final short row
+    "final_short.csv": b'a,b,c\n1,2',
+    #10. final long row
+    "final_long.csv": b'a,b,c\n1,2,3,4',
+    #11. single line
+    "single_final.csv": b'a,b,c',
+    #12. quote mid field
+    "quote_mid_field.csv": b'ab\"cd,e'
 }
+
+#TODO: Add a funtion that clean evertyhing before creating the new files
 
 for name, data in FILES.items():
     (HERE / name).write_bytes(data)

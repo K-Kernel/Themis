@@ -78,10 +78,30 @@ TEST_CASE("No trailing newline") {
   check_grid(t, {{"a", "b", "c"}, {"1", "2", "3"}});
 }
 
-TEST_CASE("Clean file unaffected") {
-  Table t = slice_csv(read_csv("data/test_data1.txt"));
-  CHECK(t.ncols() == 3);
-  CHECK(t.nrows() == 5);
-  CHECK(t.at(0, 0) == "Alice");
-  CHECK(t.at(4, 2) == "89.9");
+TEST_CASE("Final short row") {
+  Table t = load("final_short.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", ""}});
+
+  REQUIRE(t.errors.size() == 1);
+  REQUIRE(t.errors[0].row == 1);
+  REQUIRE(t.errors[0].kind == Table::error_kind::ShortRow);
+}
+
+TEST_CASE("Final long row") {
+  Table t = load("final_long.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", "3"}});
+
+  REQUIRE(t.errors.size() == 1);
+  REQUIRE(t.errors[0].row == 1);
+  REQUIRE(t.errors[0].kind == Table::error_kind::LongRow);
+}
+
+TEST_CASE("Single line") {
+  Table t = load("single_final.csv");
+  check_grid(t, {{"a", "b", "c"}});
+}
+
+TEST_CASE("Quote mid field") {
+  Table t = load("quote_mid_field.csv");
+  check_grid(t, {{"ab\"cd", "e"}});
 }

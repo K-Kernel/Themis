@@ -15,7 +15,7 @@ inline Buffer read_csv(std::string path) {
   std::ifstream csv(path, std::ios_base::binary);
 
   if (!csv) {
-    std::runtime_error("couldn't open the file : " + path);
+    throw std::runtime_error("couldn't open the file : " + path);
   }
 
   csv.seekg(0, std::ios::end);
