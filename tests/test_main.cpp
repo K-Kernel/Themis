@@ -105,3 +105,45 @@ TEST_CASE("Quote mid field") {
   Table t = load("quote_mid_field.csv");
   check_grid(t, {{"ab\"cd", "e"}});
 }
+
+TEST_CASE("Quoted first field in a later row") {
+  Table t = load("quoted_first_field.csv");
+  check_grid(t, {{"name", "age"}, {"Smith, John", "42"}, {"Doe, Jane", "37"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Quoted last field across serveral rows") {
+  Table t = load("quoted_last_field.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", "3"}, {"4", "5", "6"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Quoted last field with CRLF") {
+  Table t = load("quoted_last_crlf.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", "3"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Closed quote at EOF strips the quote") {
+  Table t = load("quoted_at_eof.csv");
+  check_grid(t, {{"a", "b", "c"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Escaped field at EOF is unescaped") {
+  Table t = load("escaped_at_eof.csv");
+  check_grid(t, {{"a", "x\"y"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Escaped field with CRLF is unescaped once") {
+  Table t = load("escaped_crlf.csv");
+  check_grid(t, {{"a", "x\"y"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Trailing delimiter at EOF keeps the empty field") {
+  Table t = load("trailing_delim_eof.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", ""}});
+  CHECK(t.errors.empty());
+}

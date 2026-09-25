@@ -10,7 +10,7 @@ struct Table {
   std::vector<std::string_view> header;
   std::vector<std::string_view> cells;
   size_t number_of_columns;
-  enum error_kind { ShortRow, LongRow };
+  enum error_kind { ShortRow, LongRow, UnterminatedQuote };
   struct parse_error {
     size_t row;
     size_t col;
