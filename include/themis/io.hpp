@@ -205,7 +205,8 @@ inline Table slice_csv(Buffer csv) {
     } else if (state == State::Quoted) {
       table.errors.push_back(
           {row, current_row_cells, Table::UnterminatedQuote});
-      throw std::runtime_error("Field without a closing quote");
+      end_field(table, whole.substr(field_start), current_row_cells);
+      end_record(table, first_record, current_row_cells, row);
     } else if (state == State::QuoteInQuoted) {
       if (using_scratch) {
 

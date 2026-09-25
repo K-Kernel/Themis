@@ -147,3 +147,16 @@ TEST_CASE("Trailing delimiter at EOF keeps the empty field") {
   check_grid(t, {{"a", "b", "c"}, {"1", "2", ""}});
   CHECK(t.errors.empty());
 }
+
+TEST_CASE("Unterminated quote: record it, never throw") {
+  // Policy from the design: loading never throws. The quote swallows the rest
+  // of the file (Python's csv does the same); rows before it survive intact,
+  // and the error says exactly where the damage starts.
+  Table t{};
+  REQUIRE_NOTHROW(t = load("unterminated_quote.csv"));
+  check_grid(t, {{"a", "b"}, {"1", "oops\n3,4\n"}});
+  REQUIRE(t.errors.size() == 1);
+  CHECK(t.errors[0].row == 1);
+  CHECK(t.errors[0].col == 1);
+  CHECK(t.errors[0].kind == Table::error_kind::UnterminatedQuote);
+}
