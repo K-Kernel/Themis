@@ -1,6 +1,5 @@
 #pragma once
 #include <cstddef>
-#include <stdexcept>
 #include <string_view>
 #include <themis/buffer.hpp>
 #include <themis/table.hpp>
@@ -79,19 +78,25 @@ inline Table slice_csv(Buffer csv) {
         end_field(table, whole.substr(field_start, i - field_start),
                   current_row_cells);
         field_start = i + 1;
-      } else if (whole[i] == '\n') {
-        if (whole[i - 1] == '\r') {
-          end_field(table, whole.substr(field_start, i - field_start - 1),
-                    current_row_cells);
-          end_record(table, first_record, current_row_cells, row);
-
-        } else {
-          end_field(table, whole.substr(field_start, i - field_start),
-                    current_row_cells);
-          end_record(table, first_record, current_row_cells, row);
+      } else if (whole[i] == '\r') {
+        if (i + 1 < whole.size() && whole[i + 1] == '\n') {
+          if (current_row_cells > 0) {
+            end_field(table, "", current_row_cells);
+            end_record(table, first_record, current_row_cells, row);
+          }
+          field_start = i + 2;
+          state = State::FieldStart;
+          continue;
         }
 
+      } else if (whole[i] == '\n') {
+        if (current_row_cells > 0) {
+          end_field(table, "", current_row_cells);
+          end_record(table, first_record, current_row_cells, row);
+        }
         field_start = i + 1;
+        state = State::FieldStart;
+        continue;
       } else {
         state = State::Unquoted;
       }
@@ -102,18 +107,22 @@ inline Table slice_csv(Buffer csv) {
                   current_row_cells);
         field_start = i + 1;
         state = State::FieldStart;
-      } else if (whole[i] == '\n') {
-        if (whole[i - 1] == '\r') {
-          end_field(table, whole.substr(field_start, i - field_start - 1),
-                    current_row_cells);
-          end_record(table, first_record, current_row_cells, row);
-
-        } else {
+      } else if (whole[i] == '\r') {
+        if (i + 1 < whole.size() && whole[i + 1] == '\n') {
           end_field(table, whole.substr(field_start, i - field_start),
                     current_row_cells);
           end_record(table, first_record, current_row_cells, row);
+
+          field_start = i + 2;
+          state = State::FieldStart;
+          continue;
         }
 
+      } else if (whole[i] == '\n') {
+
+        end_field(table, whole.substr(field_start, i - field_start),
+                  current_row_cells);
+        end_record(table, first_record, current_row_cells, row);
         field_start = i + 1;
         state = State::FieldStart;
       }
@@ -154,23 +163,28 @@ inline Table slice_csv(Buffer csv) {
         state = State::FieldStart;
         using_scratch = false;
         continue;
-      } else if (whole[i] == '\n') {
-        if (whole[i - 1] == '\r') {
+      } else if (whole[i] == '\r') {
+        if (i + 1 < whole.size() && whole[i + 1] == '\n') {
           if (using_scratch) {
             table.scratch.insert(table.scratch.end(),
                                  whole.begin() + copy_start,
-                                 whole.begin() + i - 2);
+                                 whole.begin() + i - 1);
             std::string_view cell(table.scratch.data() + scratch_field_start,
                                   table.scratch.size() - scratch_field_start);
             end_field(table, cell, current_row_cells);
-
           } else {
-
-            end_field(table, whole.substr(field_start, i - field_start - 2),
+            end_field(table, whole.substr(field_start, i - field_start - 1),
                       current_row_cells);
           }
           end_record(table, first_record, current_row_cells, row);
-        } else if (using_scratch) {
+          field_start = i + 2;
+          state = State::FieldStart;
+          using_scratch = false;
+          continue;
+        }
+
+      } else if (whole[i] == '\n') {
+        if (using_scratch) {
 
           table.scratch.insert(table.scratch.end(), whole.begin() + copy_start,
                                whole.begin() + i - 1);
@@ -223,8 +237,6 @@ inline Table slice_csv(Buffer csv) {
                   current_row_cells);
       }
       end_record(table, first_record, current_row_cells, row);
-    } else if (state == State::FieldStart) {
-      end_field(table, whole.substr(field_start), current_row_cells);
     }
   }
   return table;

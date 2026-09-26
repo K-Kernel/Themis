@@ -160,3 +160,9 @@ TEST_CASE("Unterminated quote: record it, never throw") {
   CHECK(t.errors[0].col == 1);
   CHECK(t.errors[0].kind == Table::error_kind::UnterminatedQuote);
 }
+
+TEST_CASE("Leading blank line is skipped, not a crash") {
+  Table t = load("leading_newline.csv");
+  check_grid(t, {{"a", "b"}, {"1", "2"}});
+  CHECK(t.errors.empty());
+}
