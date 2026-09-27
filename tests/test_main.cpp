@@ -12,7 +12,7 @@
 using Grid = std::vector<std::vector<std::string>>;
 
 Table load(const std::string &name) {
-  return slice_csv(read_csv("data/" + name));
+  return themis::slice_csv(read_csv("data/" + name));
 }
 
 void check_grid(const Table &t, const Grid &want) {
