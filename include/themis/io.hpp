@@ -20,17 +20,17 @@ inline void end_record(Table &table, bool &first_record,
   }
 
   if (current_row_cells < table.number_of_columns) {
+    table.errors.push_back({row, current_row_cells, Table::ShortRow});
     while (current_row_cells < table.number_of_columns) {
       table.cells.push_back("");
       ++current_row_cells;
     }
-    table.errors.push_back({row, current_row_cells, Table::ShortRow});
   } else if (current_row_cells > table.number_of_columns) {
+    table.errors.push_back({row, table.number_of_columns, Table::LongRow});
     while (current_row_cells > table.number_of_columns) {
       table.cells.pop_back();
       --current_row_cells;
     }
-    table.errors.push_back({row, table.number_of_columns, Table::LongRow});
   };
 
   ++row;
@@ -38,7 +38,7 @@ inline void end_record(Table &table, bool &first_record,
 }
 
 inline Table slice_csv(Buffer csv) {
-  Table table{csv, {}, {}, {}, 0, {}};
+  Table table{csv, {}, {}, 0, {}};
   std::string_view whole{csv.buffer_view.data(), csv.buffer_view.size()};
 
   // Check BOM
@@ -56,7 +56,7 @@ inline Table slice_csv(Buffer csv) {
   enum class State { FieldStart, Unquoted, Quoted, QuoteInQuoted };
   State state{State::FieldStart};
 
-  table.scratch.reserve(whole.size());
+  table.scratch->reserve(whole.size());
   size_t scratch_field_start{0};
   bool using_scratch{false};
   size_t copy_start{0};
@@ -137,22 +137,23 @@ inline Table slice_csv(Buffer csv) {
       if (whole[i] == '"') {
         if (!using_scratch) {
           using_scratch = true;
-          scratch_field_start = table.scratch.size();
+          scratch_field_start = table.scratch->size();
         }
 
-        table.scratch.insert(table.scratch.end(), whole.begin() + copy_start,
-                             whole.begin() + i);
+        table.scratch->insert(table.scratch->end(), whole.begin() + copy_start,
+                              whole.begin() + i);
         copy_start = i + 1;
         state = State::Quoted;
 
       } else if (whole[i] == ',') {
 
         if (using_scratch) {
-          table.scratch.insert(table.scratch.end(), whole.begin() + copy_start,
-                               whole.begin() + i - 1);
+          table.scratch->insert(table.scratch->end(),
+                                whole.begin() + copy_start,
+                                whole.begin() + i - 1);
 
-          std::string_view cell(table.scratch.data() + scratch_field_start,
-                                table.scratch.size() - scratch_field_start);
+          std::string_view cell(table.scratch->data() + scratch_field_start,
+                                table.scratch->size() - scratch_field_start);
           end_field(table, cell, current_row_cells);
         } else {
           end_field(table, whole.substr(field_start, i - field_start - 1),
@@ -166,11 +167,11 @@ inline Table slice_csv(Buffer csv) {
       } else if (whole[i] == '\r') {
         if (i + 1 < whole.size() && whole[i + 1] == '\n') {
           if (using_scratch) {
-            table.scratch.insert(table.scratch.end(),
-                                 whole.begin() + copy_start,
-                                 whole.begin() + i - 1);
-            std::string_view cell(table.scratch.data() + scratch_field_start,
-                                  table.scratch.size() - scratch_field_start);
+            table.scratch->insert(table.scratch->end(),
+                                  whole.begin() + copy_start,
+                                  whole.begin() + i - 1);
+            std::string_view cell(table.scratch->data() + scratch_field_start,
+                                  table.scratch->size() - scratch_field_start);
             end_field(table, cell, current_row_cells);
           } else {
             end_field(table, whole.substr(field_start, i - field_start - 1),
@@ -186,11 +187,12 @@ inline Table slice_csv(Buffer csv) {
       } else if (whole[i] == '\n') {
         if (using_scratch) {
 
-          table.scratch.insert(table.scratch.end(), whole.begin() + copy_start,
-                               whole.begin() + i - 1);
+          table.scratch->insert(table.scratch->end(),
+                                whole.begin() + copy_start,
+                                whole.begin() + i - 1);
 
-          std::string_view cell(table.scratch.data() + scratch_field_start,
-                                table.scratch.size() - scratch_field_start);
+          std::string_view cell(table.scratch->data() + scratch_field_start,
+                                table.scratch->size() - scratch_field_start);
           end_field(table, cell, current_row_cells);
           end_record(table, first_record, current_row_cells, row);
         } else {
@@ -224,11 +226,11 @@ inline Table slice_csv(Buffer csv) {
     } else if (state == State::QuoteInQuoted) {
       if (using_scratch) {
 
-        table.scratch.insert(table.scratch.end(), whole.begin() + copy_start,
-                             whole.end() - 1);
+        table.scratch->insert(table.scratch->end(), whole.begin() + copy_start,
+                              whole.end() - 1);
 
-        std::string_view cell(table.scratch.data() + scratch_field_start,
-                              table.scratch.size() - scratch_field_start);
+        std::string_view cell(table.scratch->data() + scratch_field_start,
+                              table.scratch->size() - scratch_field_start);
 
         end_field(table, cell, current_row_cells);
       } else {

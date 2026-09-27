@@ -166,3 +166,32 @@ TEST_CASE("Leading blank line is skipped, not a crash") {
   check_grid(t, {{"a", "b"}, {"1", "2"}});
   CHECK(t.errors.empty());
 }
+
+TEST_CASE("Trailing blank line is skipped") {
+  Table t = load("trailing_blank_line.csv");
+  check_grid(t, {{"a", "b", "c"}, {"1", "2", "3"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("CRLF blank line is skipped") {
+  Table t = load("blank_line_crlf.csv");
+  check_grid(t, {{"a", "b"}, {"1", "2"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Short row reports the first missing column") {
+  Table t = load("short_row_col.csv");
+  check_grid(t, {{"a", "b", "c", "d"}, {"1", "", "", ""}});
+  REQUIRE(t.errors.size() == 1);
+  CHECK(t.errors[0].row == 1);
+  CHECK(t.errors[0].col == 1); // not 4
+  CHECK(t.errors[0].kind == Table::error_kind::ShortRow);
+}
+
+TEST_CASE("A copied table outlives the original") {
+  std::optional<Table> original = load("escaped_quote.csv");
+  Table copy = *original;
+  original.reset(); // the file bytes survive via shared_ptr; does the scratch?
+  CHECK(std::string(copy.at(0, 0)) == "a");
+  CHECK(std::string(copy.at(0, 1)) == "he said \"hi\"");
+}

@@ -1,12 +1,12 @@
 #pragma once
 #include <cstddef>
+#include <memory>
 #include <string_view>
 #include <themis/buffer.hpp>
 #include <vector>
 
 struct Table {
   Buffer data;
-  std::vector<char> scratch;
   std::vector<std::string_view> header;
   std::vector<std::string_view> cells;
   size_t number_of_columns;
@@ -17,6 +17,8 @@ struct Table {
     error_kind kind;
   };
   std::vector<parse_error> errors;
+  std::shared_ptr<std::vector<char>> scratch{
+      std::make_shared<std::vector<char>>()};
 
   size_t ncols() const { return number_of_columns; }
   size_t nrows() const {
