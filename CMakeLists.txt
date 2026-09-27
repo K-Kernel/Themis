@@ -14,6 +14,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+    target_compile_definitions(themis PRIVATE _LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
 	target_compile_options(themis PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(themis PRIVATE -fsanitize=address,undefined)
 endif()
@@ -34,8 +36,8 @@ FetchContent_MakeAvailable(doctest)
 add_executable(tests tests/test_main.cpp)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(tests PRIVATE _LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
     target_compile_options(tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
-
     target_link_options(tests PRIVATE -fsanitize=address,undefined)
 endif()
 

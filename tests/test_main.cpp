@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <cassert>
 #include <doctest/doctest.h>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <themis/buffer.hpp>
@@ -194,4 +195,32 @@ TEST_CASE("A copied table outlives the original") {
   original.reset(); // the file bytes survive via shared_ptr; does the scratch?
   CHECK(std::string(copy.at(0, 0)) == "a");
   CHECK(std::string(copy.at(0, 1)) == "he said \"hi\"");
+}
+
+TEST_CASE("Quote as final byte") {
+  Table t = load("quote_final_byte.csv");
+  check_grid(t, {{"a", ""}});
+  REQUIRE(t.errors.size() == 1);
+  CHECK(t.errors[0].row == 0);
+  CHECK(t.errors[0].col == 1);
+  CHECK(t.errors[0].kind == Table::error_kind::UnterminatedQuote);
+}
+
+TEST_CASE("Escaped quote inside an unclosed field") {
+  Table t = load("escaped_quote_unclosed.csv");
+  check_grid(t, {{"\"a"}});
+  REQUIRE(t.errors.size() == 1);
+  CHECK(t.errors[0].row == 0);
+  CHECK(t.errors[0].col == 0);
+  CHECK(t.errors[0].kind == Table::error_kind::UnterminatedQuote);
+}
+
+TEST_CASE("Character after closing quote") {
+  Table t = load("character_after_closing_quote.csv");
+  check_grid(t, {{"abx", "c"}});
+}
+
+TEST_CASE("Carriage return") {
+  Table t = load("CR.csv");
+  check_grid(t, {{"a", "b"}, {"c", "d"}});
 }

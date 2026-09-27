@@ -65,11 +65,22 @@ FILES = {
     # --- error reporting --------------------------------------------------
     #24. short row: col must be the FIRST MISSING column
     "short_row_col.csv":       b'a,b,c,d\n1\n',
+
+    # --- Final 4 cases -----------------------------------
+    #25. quoted as final byte
+    "quote_final_byte.csv": b'a,"',
+    #26. Escaped quote inside an unclosed field 
+    "escaped_quote_unclosed.csv": b'"""a',
+    #27. Character after closing quote
+    "character_after_closing_quote.csv": b'"ab"x,c',
+    #28.\r (carriage return)
+    "CR.csv": b'a,b\rc,d'
+    
 }
 
 
 for file in HERE.iterdir():
-    if file.name in FILES.keys():
+    if file.suffix == ".csv":
         file.unlink()
         print(f"deleting : {file.name}")
 

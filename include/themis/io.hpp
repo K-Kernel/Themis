@@ -5,6 +5,7 @@
 #include <themis/table.hpp>
 #include <vector>
 
+namespace themis {
 inline void end_field(Table &table, std::string_view field,
                       size_t &current_row_cells) {
   table.cells.push_back(field);
@@ -103,8 +104,21 @@ inline Table slice_csv(Buffer csv) {
 
     } else if (state == State::Unquoted) {
       if (whole[i] == ',') {
-        end_field(table, whole.substr(field_start, i - field_start),
-                  current_row_cells);
+        if (using_scratch) {
+          table.scratch->insert(table.scratch->end(),
+                                whole.begin() + copy_start, whole.begin() + i);
+
+          std::string_view cell(table.scratch->data() + scratch_field_start,
+                                table.scratch->size() - scratch_field_start);
+
+          end_field(table, cell, current_row_cells);
+
+          using_scratch = false;
+        } else {
+          end_field(table, whole.substr(field_start, i - field_start),
+                    current_row_cells);
+        }
+
         field_start = i + 1;
         state = State::FieldStart;
       } else if (whole[i] == '\r') {
@@ -116,8 +130,13 @@ inline Table slice_csv(Buffer csv) {
           field_start = i + 2;
           state = State::FieldStart;
           continue;
+        } else {
+          end_field(table, whole.substr(field_start, i - field_start),
+                    current_row_cells);
+          end_record(table, first_record, current_row_cells, row);
+          field_start = i + 1;
+          state = State::FieldStart;
         }
-
       } else if (whole[i] == '\n') {
 
         end_field(table, whole.substr(field_start, i - field_start),
@@ -205,41 +224,67 @@ inline Table slice_csv(Buffer csv) {
         state = State::FieldStart;
         using_scratch = false;
         continue;
+      } else {
+        if (!using_scratch) {
+          using_scratch = true;
+          scratch_field_start = table.scratch->size();
+
+          // Copy everything before the closing quote.
+          table.scratch->insert(table.scratch->end(),
+                                whole.begin() + field_start,
+                                whole.begin() + i - 1);
+        }
+
+        // Keep the character after the closing quote.
+        table.scratch->push_back(whole[i]);
+
+        copy_start = i + 1;
+        state = State::Unquoted;
       }
     }
   }
 
+  // EOF handling
   if (state == State::FieldStart && current_row_cells > 0) {
     end_field(table, whole.substr(field_start), current_row_cells);
     end_record(table, first_record, current_row_cells, row);
   }
+  if (state == State::Unquoted) {
+    end_field(table, whole.substr(field_start), current_row_cells);
+    end_record(table, first_record, current_row_cells, row);
+  }
+  if (state == State::Quoted) {
+    table.errors.push_back({row, current_row_cells, Table::UnterminatedQuote});
+    if (using_scratch) {
+      table.scratch->insert(table.scratch->end(), whole.begin() + copy_start,
+                            whole.end());
+      std::string_view cell(table.scratch->data() + scratch_field_start,
+                            table.scratch->size() - scratch_field_start);
+      end_field(table, cell, current_row_cells);
 
-  if (field_start < whole.size()) {
-    if (state == State::Unquoted) {
+    } else {
       end_field(table, whole.substr(field_start), current_row_cells);
-      end_record(table, first_record, current_row_cells, row);
-    } else if (state == State::Quoted) {
-      table.errors.push_back(
-          {row, current_row_cells, Table::UnterminatedQuote});
-      end_field(table, whole.substr(field_start), current_row_cells);
-      end_record(table, first_record, current_row_cells, row);
-    } else if (state == State::QuoteInQuoted) {
-      if (using_scratch) {
-
-        table.scratch->insert(table.scratch->end(), whole.begin() + copy_start,
-                              whole.end() - 1);
-
-        std::string_view cell(table.scratch->data() + scratch_field_start,
-                              table.scratch->size() - scratch_field_start);
-
-        end_field(table, cell, current_row_cells);
-      } else {
-
-        end_field(table, whole.substr(field_start, i - field_start - 1),
-                  current_row_cells);
-      }
-      end_record(table, first_record, current_row_cells, row);
     }
+    end_record(table, first_record, current_row_cells, row);
+  }
+
+  if (state == State::QuoteInQuoted) {
+    if (using_scratch) {
+
+      table.scratch->insert(table.scratch->end(), whole.begin() + copy_start,
+                            whole.end() - 1);
+
+      std::string_view cell(table.scratch->data() + scratch_field_start,
+                            table.scratch->size() - scratch_field_start);
+
+      end_field(table, cell, current_row_cells);
+    } else {
+
+      end_field(table, whole.substr(field_start, i - field_start - 1),
+                current_row_cells);
+    }
+    end_record(table, first_record, current_row_cells, row);
   }
   return table;
 }
+} // namespace themis

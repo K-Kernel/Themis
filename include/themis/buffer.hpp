@@ -24,7 +24,7 @@ inline Buffer read_csv(std::string path) {
   csv.seekg(0);
   auto storage = std::make_shared<std::vector<char>>(csv_size);
 
-  csv.read(storage->data(), storage->size());
+  csv.read(storage->data(), static_cast<std::streamsize>(storage->size()));
 
   return Buffer{std::span<const char>(*storage), storage};
 }
