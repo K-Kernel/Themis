@@ -8,6 +8,17 @@
 namespace themis {
 namespace detail {
 
+struct CsvCursor {
+  std::string_view text;
+  size_t field_start{0};
+  size_t copy_start{0};
+  size_t scratch_start{0};
+  size_t in_scratch{0};
+  size_t row_cells{0};
+  size_t row{0};
+  bool first_record{0};
+};
+
 inline void end_field(Table &table, std::string_view field,
                       size_t &current_row_cells) {
   table.cells.push_back(field);
