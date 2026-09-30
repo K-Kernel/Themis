@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <vector>
 
+namespace themis {
+
 struct Buffer {
   std::span<const char> buffer_view;
   std::shared_ptr<void> file_buffer;
@@ -28,3 +30,4 @@ inline Buffer read_csv(std::string path) {
 
   return Buffer{std::span<const char>(*storage), storage};
 }
+} // namespace themis

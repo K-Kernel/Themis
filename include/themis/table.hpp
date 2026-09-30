@@ -1,12 +1,13 @@
 #pragma once
+#include "themis/buffer.hpp"
 #include <cstddef>
 #include <memory>
 #include <string_view>
-#include <themis/buffer.hpp>
 #include <vector>
 
+namespace themis {
 struct Table {
-  Buffer data;
+  themis::Buffer data;
   std::vector<std::string_view> header;
   std::vector<std::string_view> cells;
   size_t number_of_columns;
@@ -32,3 +33,4 @@ struct Table {
     return cells[row * number_of_columns + col];
   };
 };
+} // namespace themis

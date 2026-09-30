@@ -9,6 +9,7 @@
 #include <themis/table.hpp>
 #include <vector>
 
+using namespace themis;
 using Grid = std::vector<std::vector<std::string>>;
 
 Table load(const std::string &name) {
