@@ -74,7 +74,15 @@ FILES = {
     #27. Character after closing quote
     "character_after_closing_quote.csv": b'"ab"x,c',
     #28.\r (carriage return)
-    "CR.csv": b'a,b\rc,d'
+    "cr.csv": b'a,b\rc,d',
+    #29. carraige return at the start
+    "cr_at_the_start.csv": b'a,\rc,d',
+    #30. Carriage return after closing quote
+    "cr_after_closing_quote.csv": b'a,"b"\rc,d',
+    #31. Data after quotes finished
+    "stray_after_escape.csv": b'"a""b"x, c\n',
+    #32. Carriage return after clos
+    "stray_then_newline.csv": b'"a""b"\nx, c\n',
     
 }
 

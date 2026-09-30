@@ -222,6 +222,30 @@ TEST_CASE("Character after closing quote") {
 }
 
 TEST_CASE("Carriage return") {
-  Table t = load("CR.csv");
+  Table t = load("cr.csv");
   check_grid(t, {{"a", "b"}, {"c", "d"}});
+}
+
+TEST_CASE("Carriage return at the start") {
+  Table t = load("cr_at_the_start.csv");
+  check_grid(t, {{"a", ""}, {"c", "d"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Carriage return after closing quote") {
+  Table t = load("cr_after_closing_quote.csv");
+  check_grid(t, {{"a", "b"}, {"c", "d"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Stray after escape") {
+  Table t = load("stray_after_escape.csv");
+  check_grid(t, {{"a\"bx", "x"}});
+  CHECK(t.errors.empty());
+}
+
+TEST_CASE("Stray then newline") {
+  Table t = load("stray_then_newline.csv");
+  check_grid(t, {{"x", "ab"}, {"c", "d"}});
+  CHECK(t.errors.empty());
 }
