@@ -19,37 +19,66 @@ struct CsvCursor {
   bool first_record{0};
 };
 
-inline void end_field(Table &table, std::string_view field,
-                      size_t &current_row_cells) {
-  table.cells.push_back(field);
-  ++current_row_cells;
+inline size_t line_end(std::string_view text, size_t i) {
+  if (text[i] == '\r' && i > text.size() && text[i + 1] == '\n') {
+    return 2;
+  } else if (text[i] == '\r' or text[i] == '\n') {
+    return 1;
+  } else {
+    return 0;
+  }
+};
+
+inline void copy_to_scratch(Table &table, CsvCursor &cursor, size_t end) {
+  if (!cursor.in_scratch) {
+    cursor.in_scratch = true;
+    cursor.scratch_start = table.scratch->size();
+    table.scratch->insert(table.scratch->end(),
+                          cursor.text.begin() + cursor.copy_start,
+                          cursor.text.begin() + end);
+  }
 }
 
-inline void end_record(Table &table, bool &first_record,
-                       size_t &current_row_cells, size_t &row) {
+inline void emit_field(Table &table, CsvCursor &cursor, size_t end) {
+  if (cursor.in_scratch) {
+    copy_to_scratch(table, cursor, end);
+    std::string_view cell(table.scratch->data() + cursor.scratch_start,
+                          table.scratch->size() - cursor.scratch_start);
+    table.cells.push_back(cell);
+    cursor.in_scratch = false;
+  } else {
+    std::string_view cell = cursor.text.substr(cursor.field_start, end);
+    table.cells.push_back(cell);
+  }
+  ++cursor.row;
+}
 
-  if (first_record) {
-    table.number_of_columns = current_row_cells;
-    first_record = false;
+inline void ennit_record(Table &table, CsvCursor &cursor) {
+  if (cursor.first_record) {
+    table.number_of_columns = cursor.row_cells;
+    cursor.first_record = false;
   }
 
-  if (current_row_cells < table.number_of_columns) {
-    table.errors.push_back({row, current_row_cells, Table::ShortRow});
-    while (current_row_cells < table.number_of_columns) {
+  if (cursor.row_cells < table.number_of_columns) {
+    table.errors.push_back({cursor.row, cursor.row_cells, Table::ShortRow});
+    while (cursor.row_cells < table.number_of_columns) {
       table.cells.push_back("");
-      ++current_row_cells;
+      ++cursor.row_cells;
     }
-  } else if (current_row_cells > table.number_of_columns) {
-    table.errors.push_back({row, table.number_of_columns, Table::LongRow});
-    while (current_row_cells > table.number_of_columns) {
-      table.cells.pop_back();
-      --current_row_cells;
-    }
-  };
 
-  ++row;
-  current_row_cells = 0;
+  } else if (cursor.row_cells > table.number_of_columns) {
+    table.errors.push_back(
+        {cursor.row, table.number_of_columns, Table::LongRow});
+    while (cursor.row_cells > table.number_of_columns) {
+      table.cells.pop_back();
+      --cursor.row_cells;
+    }
+  }
+
+  ++cursor.row;
+  cursor.row_cells = 0;
 }
+
 } // namespace detail
 inline Table slice_csv(Buffer csv) {
   Table table{csv, {}, {}, 0, {}};
