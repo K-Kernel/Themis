@@ -10,7 +10,7 @@ namespace themis {
 using Grid = std::vector<std::vector<std::string>>;
 
 inline Table load(const std::string &name, bool has_header = false) {
-  return slice_csv(read_csv("data/" + name), has_header);
+  return slice_csv(read_csv("data/corpus/" + name), has_header);
 }
 
 inline void check_grid(const Table &t, const Grid &want) {

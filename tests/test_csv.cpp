@@ -1,4 +1,3 @@
-#include <stdexcept>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "helpers.hpp"
 #include <cassert>
@@ -9,7 +8,6 @@
 #include <themis/buffer.hpp>
 #include <themis/io.hpp>
 #include <themis/table.hpp>
-#include <vector>
 
 using namespace themis;
 
