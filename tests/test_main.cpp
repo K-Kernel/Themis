@@ -240,7 +240,7 @@ TEST_CASE("Carriage return after closing quote") {
 
 TEST_CASE("Stray after escape") {
   Table t = load("stray_after_escape.csv");
-  check_grid(t, {{"a\"bx", "x"}});
+  check_grid(t, {{"a\"bx", "c"}});
   CHECK(t.errors.empty());
 }
 

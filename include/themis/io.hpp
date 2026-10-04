@@ -13,14 +13,14 @@ struct CsvCursor {
   size_t field_start{0};
   size_t copy_start{0};
   size_t scratch_start{0};
-  size_t in_scratch{0};
   size_t row_cells{0};
   size_t row{0};
-  bool first_record{0};
+  bool first_record{true};
+  bool in_scratch{false};
 };
 
 inline size_t line_end(std::string_view text, size_t i) {
-  if (text[i] == '\r' && i > text.size() && text[i + 1] == '\n') {
+  if (text[i] == '\r' && i + 1 < text.size() && text[i + 1] == '\n') {
     return 2;
   } else if (text[i] == '\r' or text[i] == '\n') {
     return 1;
@@ -33,10 +33,10 @@ inline void copy_to_scratch(Table &table, CsvCursor &cursor, size_t end) {
   if (!cursor.in_scratch) {
     cursor.in_scratch = true;
     cursor.scratch_start = table.scratch->size();
-    table.scratch->insert(table.scratch->end(),
-                          cursor.text.begin() + cursor.copy_start,
-                          cursor.text.begin() + end);
   }
+  table.scratch->insert(table.scratch->end(),
+                        cursor.text.begin() + cursor.copy_start,
+                        cursor.text.begin() + end);
 }
 
 inline void emit_field(Table &table, CsvCursor &cursor, size_t end) {
@@ -47,13 +47,14 @@ inline void emit_field(Table &table, CsvCursor &cursor, size_t end) {
     table.cells.push_back(cell);
     cursor.in_scratch = false;
   } else {
-    std::string_view cell = cursor.text.substr(cursor.field_start, end);
+    std::string_view cell =
+        cursor.text.substr(cursor.field_start, end - cursor.field_start);
     table.cells.push_back(cell);
   }
-  ++cursor.row;
+  ++cursor.row_cells;
 }
 
-inline void ennit_record(Table &table, CsvCursor &cursor) {
+inline void emit_record(Table &table, CsvCursor &cursor) {
   if (cursor.first_record) {
     table.number_of_columns = cursor.row_cells;
     cursor.first_record = false;
@@ -82,253 +83,109 @@ inline void ennit_record(Table &table, CsvCursor &cursor) {
 } // namespace detail
 inline Table slice_csv(Buffer csv) {
   Table table{csv, {}, {}, 0, {}};
-  std::string_view whole{csv.buffer_view.data(), csv.buffer_view.size()};
+  detail::CsvCursor cursor{
+      std::string_view{csv.buffer_view.data(), csv.buffer_view.size()}};
 
   // Check BOM
-  if (whole.size() >= 3 && static_cast<unsigned char>(whole[0]) == 0xEF &&
-      static_cast<unsigned char>(whole[1]) == 0xBB &&
-      static_cast<unsigned char>(whole[2]) == 0xBF) {
-    whole.remove_prefix(3);
+  if (cursor.text.size() >= 3 &&
+      static_cast<unsigned char>(cursor.text[0]) == 0xEF &&
+      static_cast<unsigned char>(cursor.text[1]) == 0xBB &&
+      static_cast<unsigned char>(cursor.text[2]) == 0xBF) {
+    cursor.text.remove_prefix(3);
   }
 
   // TODO:: Support header
 
-  size_t field_start{0};
-  bool first_record = true;
-
   enum class State { FieldStart, Unquoted, Quoted, QuoteInQuoted };
   State state{State::FieldStart};
 
-  table.scratch->reserve(whole.size());
-  size_t scratch_field_start{0};
-  bool using_scratch{false};
-  size_t copy_start{0};
+  table.scratch->reserve(cursor.text.size());
 
-  size_t current_row_cells{0};
-  size_t row{0};
-  size_t i{0};
-
-  for (; i < whole.size(); ++i) {
+  for (size_t i{0}; i < cursor.text.size(); ++i) {
 
     // TODO: Change this to a switch
-    if (state == State::FieldStart) {
-
-      if (whole[i] == '"') {
-        field_start = i + 1;
-        state = State::Quoted;
-        copy_start = field_start;
-      } else if (whole[i] == ',') {
-        detail::end_field(table, whole.substr(field_start, i - field_start),
-                          current_row_cells);
-        field_start = i + 1;
-      } else if (whole[i] == '\r') {
-        if (i + 1 < whole.size() && whole[i + 1] == '\n') {
-          if (current_row_cells > 0) {
-            detail::end_field(table, "", current_row_cells);
-            detail::end_record(table, first_record, current_row_cells, row);
-          }
-          field_start = i + 2;
-          state = State::FieldStart;
-          continue;
-        }
-
-      } else if (whole[i] == '\n') {
-        if (current_row_cells > 0) {
-          detail::end_field(table, "", current_row_cells);
-          detail::end_record(table, first_record, current_row_cells, row);
-        }
-        field_start = i + 1;
-        state = State::FieldStart;
-        continue;
-      } else {
-        state = State::Unquoted;
-      }
-
-    } else if (state == State::Unquoted) {
-      if (whole[i] == ',') {
-        if (using_scratch) {
-          table.scratch->insert(table.scratch->end(),
-                                whole.begin() + copy_start, whole.begin() + i);
-
-          std::string_view cell(table.scratch->data() + scratch_field_start,
-                                table.scratch->size() - scratch_field_start);
-
-          detail::end_field(table, cell, current_row_cells);
-
-          using_scratch = false;
-        } else {
-          detail::end_field(table, whole.substr(field_start, i - field_start),
-                            current_row_cells);
-        }
-
-        field_start = i + 1;
-        state = State::FieldStart;
-      } else if (whole[i] == '\r') {
-        if (i + 1 < whole.size() && whole[i + 1] == '\n') {
-          detail::end_field(table, whole.substr(field_start, i - field_start),
-                            current_row_cells);
-          detail::end_record(table, first_record, current_row_cells, row);
-
-          field_start = i + 2;
-          state = State::FieldStart;
-          continue;
-        } else {
-          detail::end_field(table, whole.substr(field_start, i - field_start),
-                            current_row_cells);
-          detail::end_record(table, first_record, current_row_cells, row);
-          field_start = i + 1;
-          state = State::FieldStart;
-        }
-      } else if (whole[i] == '\n') {
-
-        detail::end_field(table, whole.substr(field_start, i - field_start),
-                          current_row_cells);
-        detail::end_record(table, first_record, current_row_cells, row);
-        field_start = i + 1;
-        state = State::FieldStart;
-      }
-
-    } else if (state == State::Quoted) {
-      if (whole[i] == '"') {
+    if (state == State::Quoted) {
+      if (cursor.text[i] == '"') {
         state = State::QuoteInQuoted;
+        continue;
       }
-
-    } else if (state == State::QuoteInQuoted) {
-
-      if (whole[i] == '"') {
-        if (!using_scratch) {
-          using_scratch = true;
-          scratch_field_start = table.scratch->size();
-        }
-
-        table.scratch->insert(table.scratch->end(), whole.begin() + copy_start,
-                              whole.begin() + i);
-        copy_start = i + 1;
-        state = State::Quoted;
-
-      } else if (whole[i] == ',') {
-
-        if (using_scratch) {
-          table.scratch->insert(table.scratch->end(),
-                                whole.begin() + copy_start,
-                                whole.begin() + i - 1);
-
-          std::string_view cell(table.scratch->data() + scratch_field_start,
-                                table.scratch->size() - scratch_field_start);
-          detail::end_field(table, cell, current_row_cells);
-        } else {
-          detail::end_field(table,
-                            whole.substr(field_start, i - field_start - 1),
-                            current_row_cells);
-        }
-
-        field_start = i + 1;
-        state = State::FieldStart;
-        using_scratch = false;
-        continue;
-      } else if (whole[i] == '\r') {
-        if (i + 1 < whole.size() && whole[i + 1] == '\n') {
-          if (using_scratch) {
-            table.scratch->insert(table.scratch->end(),
-                                  whole.begin() + copy_start,
-                                  whole.begin() + i - 1);
-            std::string_view cell(table.scratch->data() + scratch_field_start,
-                                  table.scratch->size() - scratch_field_start);
-            detail::end_field(table, cell, current_row_cells);
-          } else {
-            detail::end_field(table,
-                              whole.substr(field_start, i - field_start - 1),
-                              current_row_cells);
+    } else {
+      size_t eol = detail::line_end(cursor.text, i);
+      if (eol != 0) {
+        if (state == State::FieldStart) {
+          if (cursor.row_cells > 0) {
+            detail::emit_field(table, cursor, i);
+            detail::emit_record(table, cursor);
           }
-          detail::end_record(table, first_record, current_row_cells, row);
-          field_start = i + 2;
-          state = State::FieldStart;
-          using_scratch = false;
-          continue;
+        } else if (state == State::Unquoted) {
+          detail::emit_field(table, cursor, i);
+          detail::emit_record(table, cursor);
+        } else if (state == State::QuoteInQuoted) {
+          detail::emit_field(table, cursor, i - 1);
+          detail::emit_record(table, cursor);
         }
-
-      } else if (whole[i] == '\n') {
-        if (using_scratch) {
-
-          table.scratch->insert(table.scratch->end(),
-                                whole.begin() + copy_start,
-                                whole.begin() + i - 1);
-
-          std::string_view cell(table.scratch->data() + scratch_field_start,
-                                table.scratch->size() - scratch_field_start);
-          detail::end_field(table, cell, current_row_cells);
-          detail::end_record(table, first_record, current_row_cells, row);
-        } else {
-          detail::end_field(table,
-                            whole.substr(field_start, i - field_start - 1),
-                            current_row_cells);
-          detail::end_record(table, first_record, current_row_cells, row);
-        }
-
-        field_start = i + 1;
+        cursor.field_start = i + eol;
+        i += eol - 1;
         state = State::FieldStart;
-        using_scratch = false;
         continue;
+      }
+    }
+
+    switch (state) {
+    case State::FieldStart:
+      if (cursor.text[i] == '"') {
+        cursor.field_start = i + 1;
+        cursor.copy_start = i + 1;
+        state = State::Quoted;
+      } else if (cursor.text[i] == ',') {
+        detail::emit_field(table, cursor, i);
+        cursor.field_start = i + 1;
       } else {
-        if (!using_scratch) {
-          using_scratch = true;
-          scratch_field_start = table.scratch->size();
-
-          // Copy everything before the closing quote.
-          table.scratch->insert(table.scratch->end(),
-                                whole.begin() + field_start,
-                                whole.begin() + i - 1);
-        }
-
-        // Keep the character after the closing quote.
-        table.scratch->push_back(whole[i]);
-
-        copy_start = i + 1;
         state = State::Unquoted;
       }
+      break;
+
+    case State::Unquoted:
+      if (cursor.text[i] == ',') {
+        detail::emit_field(table, cursor, i);
+        cursor.field_start = i + 1;
+        state = State::FieldStart;
+      }
+      break;
+
+    case State::QuoteInQuoted:
+      if (cursor.text[i] == '"') {
+        detail::copy_to_scratch(table, cursor, i);
+        cursor.copy_start = i + 1;
+        state = State::Quoted;
+      } else if (cursor.text[i] == ',') {
+        detail::emit_field(table, cursor, i - 1);
+        cursor.field_start = i + 1;
+        state = State::FieldStart;
+      } else {
+        detail::copy_to_scratch(table, cursor, i - 1);
+        cursor.copy_start = i;
+        state = State::Unquoted;
+      }
+      break;
     }
   }
 
   // EOF handling
-  if (state == State::FieldStart && current_row_cells > 0) {
-    detail::end_field(table, whole.substr(field_start), current_row_cells);
-    detail::end_record(table, first_record, current_row_cells, row);
-  }
-  if (state == State::Unquoted) {
-    detail::end_field(table, whole.substr(field_start), current_row_cells);
-    detail::end_record(table, first_record, current_row_cells, row);
-  }
-  if (state == State::Quoted) {
-    table.errors.push_back({row, current_row_cells, Table::UnterminatedQuote});
-    if (using_scratch) {
-      table.scratch->insert(table.scratch->end(), whole.begin() + copy_start,
-                            whole.end());
-      std::string_view cell(table.scratch->data() + scratch_field_start,
-                            table.scratch->size() - scratch_field_start);
-      detail::end_field(table, cell, current_row_cells);
-
-    } else {
-      detail::end_field(table, whole.substr(field_start), current_row_cells);
-    }
-    detail::end_record(table, first_record, current_row_cells, row);
-  }
-
-  if (state == State::QuoteInQuoted) {
-    if (using_scratch) {
-
-      table.scratch->insert(table.scratch->end(), whole.begin() + copy_start,
-                            whole.end() - 1);
-
-      std::string_view cell(table.scratch->data() + scratch_field_start,
-                            table.scratch->size() - scratch_field_start);
-
-      detail::end_field(table, cell, current_row_cells);
-    } else {
-
-      detail::end_field(table, whole.substr(field_start, i - field_start - 1),
-                        current_row_cells);
-    }
-    detail::end_record(table, first_record, current_row_cells, row);
+  if (state == State::FieldStart && cursor.row_cells > 0) {
+    detail::emit_field(table, cursor, cursor.text.size());
+    detail::emit_record(table, cursor);
+  } else if (state == State::Unquoted) {
+    detail::emit_field(table, cursor, cursor.text.size());
+    detail::emit_record(table, cursor);
+  } else if (state == State::Quoted) {
+    table.errors.push_back(
+        {cursor.row, cursor.row_cells, Table::UnterminatedQuote});
+    detail::emit_field(table, cursor, cursor.text.size());
+    detail::emit_record(table, cursor);
+  } else if (state == State::QuoteInQuoted) {
+    detail::emit_field(table, cursor, cursor.text.size() - 1);
+    detail::emit_record(table, cursor);
   }
   return table;
 }

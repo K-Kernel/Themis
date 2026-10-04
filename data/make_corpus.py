@@ -80,9 +80,9 @@ FILES = {
     #30. Carriage return after closing quote
     "cr_after_closing_quote.csv": b'a,"b"\rc,d',
     #31. Data after quotes finished
-    "stray_after_escape.csv": b'"a""b"x, c\n',
+    "stray_after_escape.csv": b'"a""b"x,c\n',
     #32. Carriage return after clos
-    "stray_then_newline.csv": b'"a""b"\nx, c\n',
+    "stray_then_newline.csv": b'x,"a"b\nc,d\n',
     
 }
 
