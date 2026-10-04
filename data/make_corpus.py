@@ -83,7 +83,9 @@ FILES = {
     "stray_after_escape.csv": b'"a""b"x,c\n',
     #32. Carriage return after clos
     "stray_then_newline.csv": b'x,"a"b\nc,d\n',
-    
+
+    # ---  Header --------------------------------------------------
+    "header.csv": b'id,name\n1,Anna\n',
 }
 
 

@@ -1,4 +1,6 @@
+#include <stdexcept>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "helpers.hpp"
 #include <cassert>
 #include <doctest/doctest.h>
 #include <optional>
@@ -10,27 +12,6 @@
 #include <vector>
 
 using namespace themis;
-using Grid = std::vector<std::vector<std::string>>;
-
-Table load(const std::string &name) {
-  return themis::slice_csv(read_csv("data/" + name));
-}
-
-void check_grid(const Table &t, const Grid &want) {
-  REQUIRE(t.ncols() > 0);
-  CHECK(t.ncols() == want[0].size());
-  CHECK(t.nrows() == want.size());
-  if (t.ncols() != want[0].size() || t.nrows() != want.size()) {
-    return;
-  }
-
-  for (size_t r = 0; r < want.size(); ++r) {
-    for (size_t c = 0; c < want[r].size(); ++c) {
-      INFO("cell (" << r << "," << c << ")");
-      CHECK(std::string(t.at(r, c)) == want[r][c]);
-    }
-  }
-}
 
 TEST_CASE("Quoted delimiter") {
   Table t = load("quoted_delimiter.csv");
@@ -248,4 +229,11 @@ TEST_CASE("Stray then newline") {
   Table t = load("stray_then_newline.csv");
   check_grid(t, {{"x", "ab"}, {"c", "d"}});
   CHECK(t.errors.empty());
+}
+
+TEST_CASE("Header") {
+  Table t = load("header.csv", true);
+  check_header(t, {"id", "name"});
+  CHECK(t.col("name") == 1);
+  CHECK_THROWS(t.col("nope"));
 }

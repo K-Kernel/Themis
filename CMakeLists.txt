@@ -6,18 +6,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=address,undefined)
+  add_compile_definitions(_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG _GLIBCXX_ASSERTIONS)
+endif()
+
 add_library(themis src/main.cpp)
 
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug)
-endif()
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-
-    target_compile_definitions(themis PRIVATE _LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
-	target_compile_options(themis PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
-    target_link_options(themis PRIVATE -fsanitize=address,undefined)
 endif()
 
 
@@ -33,13 +33,7 @@ include(FetchContent)
 FetchContent_Declare(doctest GIT_REPOSITORY https://github.com/doctest/doctest.git GIT_TAG v2.5.3)
 FetchContent_MakeAvailable(doctest)
 
-add_executable(tests tests/test_main.cpp)
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(tests PRIVATE _LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
-    target_compile_options(tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
-    target_link_options(tests PRIVATE -fsanitize=address,undefined)
-endif()
+add_executable(tests tests/test_csv.cpp)
 
 target_compile_options(tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 target_link_libraries(tests PRIVATE doctest::doctest)

@@ -2,6 +2,7 @@
 #include "themis/buffer.hpp"
 #include <cstddef>
 #include <memory>
+#include <stdexcept>
 #include <string_view>
 #include <vector>
 
@@ -31,6 +32,15 @@ struct Table {
 
   std::string_view at(size_t row, size_t col) const {
     return cells[row * number_of_columns + col];
+  };
+
+  size_t col(std::string name) const {
+    for (size_t i{0}; i < header.size(); ++i) {
+      if (header[i] == name) {
+        return i;
+      }
+    }
+    throw std::out_of_range("Header not found");
   };
 };
 } // namespace themis

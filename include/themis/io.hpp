@@ -17,6 +17,7 @@ struct CsvCursor {
   size_t row{0};
   bool first_record{true};
   bool in_scratch{false};
+  bool has_header;
 };
 
 inline size_t line_end(std::string_view text, size_t i) {
@@ -58,6 +59,9 @@ inline void emit_record(Table &table, CsvCursor &cursor) {
   if (cursor.first_record) {
     table.number_of_columns = cursor.row_cells;
     cursor.first_record = false;
+    if (cursor.has_header) {
+      table.header = table.cells;
+    }
   }
 
   if (cursor.row_cells < table.number_of_columns) {
@@ -81,10 +85,18 @@ inline void emit_record(Table &table, CsvCursor &cursor) {
 }
 
 } // namespace detail
-inline Table slice_csv(Buffer csv) {
+inline Table slice_csv(Buffer csv, bool has_header) {
   Table table{csv, {}, {}, 0, {}};
   detail::CsvCursor cursor{
-      std::string_view{csv.buffer_view.data(), csv.buffer_view.size()}};
+      std::string_view{csv.buffer_view.data(), csv.buffer_view.size()},
+      0,
+      0,
+      0,
+      0,
+      0,
+      true,
+      false,
+      has_header};
 
   // Check BOM
   if (cursor.text.size() >= 3 &&
