@@ -17,7 +17,7 @@ struct CsvCursor {
   size_t row{0};
   bool first_record{true};
   bool in_scratch{false};
-  bool has_header;
+  bool has_header{false};
 };
 
 inline size_t line_end(std::string_view text, size_t i) {
@@ -59,8 +59,10 @@ inline void emit_record(Table &table, CsvCursor &cursor) {
   if (cursor.first_record) {
     table.number_of_columns = cursor.row_cells;
     cursor.first_record = false;
+
     if (cursor.has_header) {
       table.header = table.cells;
+      table.cells.clear();
     }
   }
 
@@ -86,17 +88,10 @@ inline void emit_record(Table &table, CsvCursor &cursor) {
 
 } // namespace detail
 inline Table slice_csv(Buffer csv, bool has_header) {
-  Table table{csv, {}, {}, 0, {}};
+  Table table{.data = csv};
   detail::CsvCursor cursor{
-      std::string_view{csv.buffer_view.data(), csv.buffer_view.size()},
-      0,
-      0,
-      0,
-      0,
-      0,
-      true,
-      false,
-      has_header};
+      .text{std::string_view{csv.buffer_view.data(), csv.buffer_view.size()}},
+      .has_header = has_header};
 
   // Check BOM
   if (cursor.text.size() >= 3 &&
@@ -105,8 +100,6 @@ inline Table slice_csv(Buffer csv, bool has_header) {
       static_cast<unsigned char>(cursor.text[2]) == 0xBF) {
     cursor.text.remove_prefix(3);
   }
-
-  // TODO:: Support header
 
   enum class State { FieldStart, Unquoted, Quoted, QuoteInQuoted };
   State state{State::FieldStart};
@@ -119,8 +112,8 @@ inline Table slice_csv(Buffer csv, bool has_header) {
     if (state == State::Quoted) {
       if (cursor.text[i] == '"') {
         state = State::QuoteInQuoted;
-        continue;
       }
+      continue;
     } else {
       size_t eol = detail::line_end(cursor.text, i);
       if (eol != 0) {
@@ -179,6 +172,9 @@ inline Table slice_csv(Buffer csv, bool has_header) {
         cursor.copy_start = i;
         state = State::Unquoted;
       }
+      break;
+
+    case State::Quoted:
       break;
     }
   }

@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Debug)
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
@@ -14,12 +17,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 add_library(themis src/main.cpp)
-
-
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Debug)
-endif()
-
 
 target_include_directories(themis PUBLIC include/)
 target_compile_options(themis PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
@@ -33,7 +30,7 @@ include(FetchContent)
 FetchContent_Declare(doctest GIT_REPOSITORY https://github.com/doctest/doctest.git GIT_TAG v2.5.3)
 FetchContent_MakeAvailable(doctest)
 
-add_executable(tests tests/test_csv.cpp)
+add_executable(tests tests/main.cpp tests/test_csv.cpp tests/test_infer.cpp)
 
 target_compile_options(tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 target_link_libraries(tests PRIVATE doctest::doctest)

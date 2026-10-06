@@ -1,9 +1,12 @@
-#include <string>
-#include <vector>
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#pragma once
+
+#include <charconv>
+#include <cstdint>
 #include <doctest/doctest.h>
+#include <string>
 #include <themis/io.hpp>
 #include <themis/table.hpp>
+#include <vector>
 
 namespace themis {
 
@@ -36,4 +39,5 @@ inline void check_header(const Table &t, const std::vector<std::string> &want) {
     CHECK(std::string(t.header[i]) == want[i]);
   }
 }
+
 } // namespace themis

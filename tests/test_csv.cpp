@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "helpers.hpp"
 #include <cassert>
 #include <doctest/doctest.h>
@@ -232,6 +231,7 @@ TEST_CASE("Stray then newline") {
 TEST_CASE("Header") {
   Table t = load("header.csv", true);
   check_header(t, {"id", "name"});
+  CHECK(t.nrows() == 1);
   CHECK(t.col("name") == 1);
   CHECK_THROWS(t.col("nope"));
 }
