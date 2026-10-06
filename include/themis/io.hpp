@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <string_view>
 #include <themis/buffer.hpp>
+#include <themis/infer.hpp>
 #include <themis/table.hpp>
 #include <vector>
 

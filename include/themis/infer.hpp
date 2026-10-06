@@ -1,3 +1,5 @@
+#pragma once
+
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -8,17 +10,19 @@
 namespace themis {
 namespace detail {
 
-inline void trim(std::string_view &sv) {
-  while (!sv.empty() && sv.front() == ' ') {
+inline std::string_view trim(std::string_view sv) {
+
+  while (!sv.empty() && (sv.front() == ' ' || sv.front() == '\t')) {
     sv.remove_prefix(1);
   }
-  while (sv.empty() && sv.back() == ' ') {
+  while (!sv.empty() && (sv.back() == ' ' || sv.back() == '\t')) {
     sv.remove_suffix(1);
   }
+  return sv;
 };
 
 inline bool is_null(std::string_view sv) {
-  trim(sv);
+  sv = trim(sv);
 
   if (sv.empty()) {
     return true;
@@ -44,7 +48,7 @@ inline bool is_null(std::string_view sv) {
   return false;
 };
 
-inline bool parse_int(std::string_view &sv, int64_t &number) {
+inline bool parse_int(std::string_view sv, int64_t &number) {
   trim(sv);
 
   if (sv.empty()) {
@@ -58,7 +62,7 @@ inline bool parse_int(std::string_view &sv, int64_t &number) {
   return ec == std::errc{} && ptr == sv.data() + sv.size();
 }
 
-inline bool parse_double(std::string_view &sv, double &number) {
+inline bool parse_double(std::string_view sv, double &number) {
   trim(sv);
   if (sv.empty()) {
     return false;
@@ -89,7 +93,7 @@ inline void infer_types(Table &table) {
     }
 
     if (!all_int && all_double) {
-      std::double_t number;
+      double number;
 
       if (!detail::parse_double(value, number)) {
         all_double = false;
