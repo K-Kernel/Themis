@@ -82,6 +82,11 @@ FILES = {
     "stray_then_newline.csv": b'x,"a"b\nc,d\n',
     # ---  Header --------------------------------------------------
     "header.csv": b"id,name\n1,Anna\n",
+    "header_spaces.csv": b"id, name\n1,Ann\n",
+    "header_short_row.csv": b"a,b\n1\n",
+    "header_quoted.csv": b'"x,y",z\n1,2\n',
+    "header_only.csv": b"a,b\n",
+    "header_duplicate.csv": b"a,a\n1,2",
     # ---  Infer --------------------------------------------------
     "intenger.csv": b"n\n1\n-2\n30\n",
     "double.csv": b"x\n1.5\n-2\n",

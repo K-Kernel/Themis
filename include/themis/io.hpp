@@ -64,6 +64,11 @@ inline void emit_record(Table &table, CsvCursor &cursor) {
     if (cursor.has_header) {
       table.header = table.cells;
       table.cells.clear();
+      for (auto &name : table.header) {
+        name = trim(name);
+      }
+      cursor.row_cells = 0;
+      return;
     }
   }
 

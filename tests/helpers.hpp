@@ -1,7 +1,4 @@
 #pragma once
-
-#include <charconv>
-#include <cstdint>
 #include <doctest/doctest.h>
 #include <string>
 #include <themis/io.hpp>
@@ -33,7 +30,7 @@ inline void check_grid(const Table &t, const Grid &want) {
 }
 
 inline void check_header(const Table &t, const std::vector<std::string> &want) {
-  REQUIRE(!t.header.empty());
+  REQUIRE(t.header.size() == want.size());
   for (size_t i{0}; i < want.size(); ++i) {
     INFO("header (" << i << ")");
     CHECK(std::string(t.header[i]) == want[i]);

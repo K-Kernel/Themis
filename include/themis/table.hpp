@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
@@ -45,13 +46,13 @@ struct Table {
     return cells[row * number_of_columns + col];
   };
 
-  size_t col(std::string name) const {
+  size_t col(std::string_view name) const {
     for (size_t i{0}; i < header.size(); ++i) {
       if (header[i] == name) {
         return i;
       }
     }
-    throw std::out_of_range("Header not found");
+    throw std::out_of_range("No column named" + std::string(name));
   };
 };
 } // namespace themis

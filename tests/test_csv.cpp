@@ -2,6 +2,7 @@
 #include <cassert>
 #include <doctest/doctest.h>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <themis/buffer.hpp>
@@ -228,10 +229,38 @@ TEST_CASE("Stray then newline") {
   CHECK(t.errors.empty());
 }
 
-TEST_CASE("Header") {
+TEST_CASE("Table with Header") {
   Table t = load("header.csv", true);
   check_header(t, {"id", "name"});
   CHECK(t.nrows() == 1);
   CHECK(t.col("name") == 1);
-  CHECK_THROWS(t.col("nope"));
+  CHECK_THROWS_AS(t.col("nope"), std::out_of_range);
+}
+
+TEST_CASE("Table wiht space in the Header") {
+  Table t = load("header_spaces.csv", true);
+  CHECK(t.col("name") == 1);
+}
+
+TEST_CASE("Table with header and short rows") {
+  Table t = load("header_short_row.csv", true);
+  CHECK(t.errors.size() == 1);
+  CHECK(t.errors[0].row == 0);
+  CHECK(t.errors[0].kind == Table::error_kind::ShortRow);
+}
+
+TEST_CASE("Table with quoted header") {
+  Table t = load("header_quoted.csv", true);
+  check_header(t, {"x,y", "z"});
+}
+
+TEST_CASE("Table with only header") {
+  Table t = load("header_only.csv", true);
+  CHECK(t.ncols() == 2);
+  CHECK(t.nrows() == 0);
+}
+
+TEST_CASE("Table with duplicated in header") {
+  Table t = load("header_duplicate.csv", true);
+  CHECK(t.col("a") == 0);
 }
