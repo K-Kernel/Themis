@@ -36,6 +36,9 @@ target_compile_options(tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 target_link_libraries(tests PRIVATE doctest::doctest)
 target_link_libraries(tests PRIVATE themis)
 
+add_executable(themis-describe tools/describe.cpp)
+target_compile_options(themis-describe PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+target_link_libraries(themis-describe PRIVATE themis)
 
 enable_testing()
 add_test(NAME tests COMMAND tests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

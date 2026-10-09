@@ -75,3 +75,12 @@ TEST_CASE("Infering without proper loading") {
 
   CHECK_THROWS_AS(t.ints(0), std::logic_error);
 }
+
+TEST_CASE("Load csv function") {
+  Table t = load_csv("data/corpus/integer.csv", true);
+
+  CHECK(t.col("n") == 0);
+
+  auto s = t.ints(0);
+  CHECK(std::vector<int>(s.begin(), s.end()) == std::vector<int>{1, -2, 30});
+}

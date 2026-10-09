@@ -52,7 +52,7 @@ struct Table {
         return i;
       }
     }
-    throw std::out_of_range("No column named" + std::string(name));
+    throw std::out_of_range("No column named " + std::string(name));
   };
 
   const Column &column(size_t col) const {
