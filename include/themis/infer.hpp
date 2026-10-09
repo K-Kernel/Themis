@@ -1,11 +1,13 @@
 #pragma once
 
 #include <charconv>
-#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 #include <system_error>
 #include <themis/table.hpp>
+#include <utility>
+#include <vector>
 
 namespace themis {
 namespace detail {
@@ -49,7 +51,7 @@ inline bool is_null(std::string_view sv) {
 };
 
 inline bool parse_int(std::string_view sv, int64_t &number) {
-  trim(sv);
+  sv = trim(sv);
 
   if (sv.empty()) {
     return false;
@@ -63,7 +65,7 @@ inline bool parse_int(std::string_view sv, int64_t &number) {
 }
 
 inline bool parse_double(std::string_view sv, double &number) {
-  trim(sv);
+  sv = trim(sv);
   if (sv.empty()) {
     return false;
   }
@@ -77,37 +79,62 @@ inline bool parse_double(std::string_view sv, double &number) {
 } // namespace detail
 
 inline void infer_types(Table &table) {
-  bool all_int = true;
-  bool all_double = true;
+  table.columns.clear();
 
-  for (auto value : table.cells) {
-    if (detail::is_null(value)) {
-      continue;
-    }
+  for (size_t c{0}; c < table.ncols(); ++c) {
+    bool all_int = true;
+    bool all_double = true;
+    bool any_value = false;
+    for (size_t r{0}; r < table.nrows(); ++r) {
+      std::string_view cell = table.at(r, c);
 
-    if (all_int) {
-      std::int64_t number;
-      if (!detail::parse_int(value, number)) {
+      if (detail::is_null(table.at(r, c))) {
+        continue;
+      }
+      any_value = true;
+
+      int64_t i{};
+      double d{};
+
+      if (all_int && !detail::parse_int(cell, i)) {
         all_int = false;
-      };
-    }
-
-    if (!all_int && all_double) {
-      double number;
-
-      if (!detail::parse_double(value, number)) {
+      }
+      if (all_double && !detail::parse_double(cell, d)) {
         all_double = false;
-        break;
       }
     }
-  }
+    Column col{};
+    col.valid.assign(table.nrows(), 0);
 
-  if (all_int) {
-
-  } else if (all_double) {
-
-  } else {
+    if (any_value && all_int) {
+      std::vector<int64_t> out(table.nrows(), 0);
+      for (size_t r{0}; r < table.nrows(); ++r) {
+        std::string_view cell = table.at(r, c);
+        if (!detail::is_null(cell)) {
+          detail::parse_int(cell, out[r]);
+          col.valid[r] = 1;
+        }
+      }
+      col.data = std::move(out);
+    } else if (any_value && all_double) {
+      std::vector<double> out(table.nrows(), 0);
+      for (size_t r{0}; r < table.nrows(); ++r) {
+        std::string_view cell = table.at(r, c);
+        if (!detail::is_null(cell)) {
+          detail::parse_double(cell, out[r]);
+          col.valid[r] = 1;
+        }
+      }
+      col.data = std::move(out);
+    } else {
+      std::vector<std::string_view> out(table.nrows());
+      for (size_t r{0}; r < table.nrows(); ++r) {
+        std::string_view cell = table.at(r, c);
+        out[r] = cell;
+      }
+      col.data = std::move(out);
+    }
+    table.columns.push_back(std::move(col));
   }
 }
-
 } // namespace themis

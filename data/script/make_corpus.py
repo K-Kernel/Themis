@@ -88,9 +88,13 @@ FILES = {
     "header_only.csv": b"a,b\n",
     "header_duplicate.csv": b"a,a\n1,2",
     # ---  Infer --------------------------------------------------
-    "intenger.csv": b"n\n1\n-2\n30\n",
+    "integer.csv": b"n\n1\n-2\n30\n",
     "double.csv": b"x\n1.5\n-2\n",
-    "string.csv": b"v\nn12abc\n",
+    "string.csv": b"v\n12abc\n",
+    "nulls.csv": b"a,v\n1,1\n2,\n3,NA\n4,4\n",
+    "spaces_plus.csv": b"v,w\n 42 ,+5\n",
+    "overflow.csv": b"v\n99999999999999999999\n",
+    "all_null.csv": b"a,v\n1,\n2,\\N\n",
 }
 
 

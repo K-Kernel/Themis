@@ -54,5 +54,67 @@ struct Table {
     }
     throw std::out_of_range("No column named" + std::string(name));
   };
+
+  const Column &column(size_t col) const {
+    if (columns.empty()) {
+      throw std::logic_error("infer_types has not run");
+    }
+    return columns.at(col);
+  }
+
+  std::string column_name(size_t col) const {
+    if (col < header.size()) {
+      return std::string(header[col]);
+    } else {
+      return std::to_string(col);
+    }
+  }
+
+  std::span<const int64_t> ints(size_t col) const & {
+    const auto *v = std::get_if<std::vector<int64_t>>(&column(col).data);
+    if (v == nullptr) {
+      throw std::logic_error("column " + column_name(col) + " is not Int64");
+    }
+    return *v;
+  }
+  std::span<const int64_t> ints(size_t col) const && = delete;
+
+  std::span<const double> doubles(size_t col) const & {
+    const auto *v = std::get_if<std::vector<double>>(&column(col).data);
+    if (v == nullptr) {
+      throw std::logic_error("column " + column_name(col) + " is not Int64");
+    }
+    return *v;
+  }
+  std::span<const double> doubles(size_t col) const && = delete;
+
+  std::span<const std::string_view> strings(size_t col) const & {
+    const auto *v =
+        std::get_if<std::vector<std::string_view>>(&column(col).data);
+    if (v == nullptr) {
+      throw std::logic_error("column " + column_name(col) + " is not Int64");
+    }
+    return *v;
+  }
+  std::span<const std::string> string(size_t col) const && = delete;
+
+  std::vector<double> to_double(size_t col) {
+    const Column &c = column(col);
+
+    if (std::holds_alternative<std::vector<double>>(c.data)) {
+      std::vector<double> copy = std::get<std::vector<double>>(c.data);
+      return copy;
+    } else if (std::holds_alternative<std::vector<std::int64_t>>(c.data)) {
+      std::vector<std::int64_t> copy =
+          std::get<std::vector<std::int64_t>>(c.data);
+      std::vector<double> copy_d{};
+      for (int64_t i : copy) {
+        copy_d.push_back(static_cast<double>(i));
+      }
+      return copy_d;
+    } else {
+      throw std::logic_error("not numeric");
+    }
+  };
 };
 } // namespace themis
