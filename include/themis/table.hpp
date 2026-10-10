@@ -2,6 +2,7 @@
 #include "themis/buffer.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <limits.h>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -82,7 +83,7 @@ struct Table {
   std::span<const double> doubles(size_t col) const & {
     const auto *v = std::get_if<std::vector<double>>(&column(col).data);
     if (v == nullptr) {
-      throw std::logic_error("column " + column_name(col) + " is not Int64");
+      throw std::logic_error("column " + column_name(col) + " is not a double");
     }
     return *v;
   }
@@ -92,29 +93,34 @@ struct Table {
     const auto *v =
         std::get_if<std::vector<std::string_view>>(&column(col).data);
     if (v == nullptr) {
-      throw std::logic_error("column " + column_name(col) + " is not Int64");
+      throw std::logic_error("column " + column_name(col) + " is not a string");
     }
     return *v;
   }
-  std::span<const std::string> string(size_t col) const && = delete;
+  std::span<const std::string_view> strings(size_t col) const && = delete;
 
-  std::vector<double> to_double(size_t col) {
+  std::vector<double> to_doubles(size_t col) const {
     const Column &c = column(col);
+    std::vector<double> out{};
 
     if (std::holds_alternative<std::vector<double>>(c.data)) {
-      std::vector<double> copy = std::get<std::vector<double>>(c.data);
-      return copy;
+      out = std::get<std::vector<double>>(c.data);
     } else if (std::holds_alternative<std::vector<std::int64_t>>(c.data)) {
-      std::vector<std::int64_t> copy =
-          std::get<std::vector<std::int64_t>>(c.data);
+      const auto &values = std::get<std::vector<std::int64_t>>(c.data);
       std::vector<double> copy_d{};
-      for (int64_t i : copy) {
+      for (int64_t i : values) {
         copy_d.push_back(static_cast<double>(i));
       }
-      return copy_d;
     } else {
-      throw std::logic_error("not numeric");
+      throw std::logic_error("column " + column_name(col) + "is not numeric");
     }
+
+    for (size_t r = 0; r < out.size(); ++r) {
+      if (c.valid[r] == 0) {
+        out[r] = std::numeric_limits<double>::quiet_NaN();
+      }
+    }
+    return out;
   };
 };
 } // namespace themis

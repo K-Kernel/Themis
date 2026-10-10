@@ -95,6 +95,8 @@ FILES = {
     "spaces_plus.csv": b"v,w\n 42 ,+5\n",
     "overflow.csv": b"v\n99999999999999999999\n",
     "all_null.csv": b"a,v\n1,\n2,\\N\n",
+    "strings_with_null.csv": b"s\nabc\nNA\n",
+    "double_with_null.csv":b"a,x\n1,1.5\n2,\n"
 }
 
 

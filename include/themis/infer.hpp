@@ -1,8 +1,8 @@
 #pragma once
-
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string_view>
 #include <system_error>
 #include <themis/table.hpp>
@@ -117,7 +117,8 @@ inline void infer_types(Table &table) {
       }
       col.data = std::move(out);
     } else if (any_value && all_double) {
-      std::vector<double> out(table.nrows(), 0);
+      std::vector<double> out(table.nrows(),
+                              std::numeric_limits<double>::quiet_NaN());
       for (size_t r{0}; r < table.nrows(); ++r) {
         std::string_view cell = table.at(r, c);
         if (!detail::is_null(cell)) {
@@ -130,7 +131,10 @@ inline void infer_types(Table &table) {
       std::vector<std::string_view> out(table.nrows());
       for (size_t r{0}; r < table.nrows(); ++r) {
         std::string_view cell = table.at(r, c);
-        out[r] = cell;
+        if (!detail::is_null(cell)) {
+          out[r] = cell;
+          col.valid[r] = 1;
+        }
       }
       col.data = std::move(out);
     }

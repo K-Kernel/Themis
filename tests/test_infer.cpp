@@ -1,5 +1,6 @@
 #include "helpers.hpp"
 #include "themis/infer.hpp"
+#include <cmath>
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <stdexcept>
@@ -33,9 +34,8 @@ TEST_CASE("Table with double") {
 
 TEST_CASE("Table with string") {
   Table t = typed("string.csv");
-  auto s = t.strings(0);
 
-  CHECK(s[0] == "12abc");
+  CHECK(t.strings(0)[0] == "12abc");
   CHECK_THROWS_AS(t.ints(0), std::logic_error);
 }
 
@@ -65,7 +65,6 @@ TEST_CASE("Table with a very big number") {
 
 TEST_CASE("Null table") {
   Table t = typed("all_null.csv");
-  auto s = t.strings(1);
 
   CHECK(t.column(1).valid == std::vector<uint8_t>{0, 0});
 }
@@ -82,5 +81,17 @@ TEST_CASE("Load csv function") {
   CHECK(t.col("n") == 0);
 
   auto s = t.ints(0);
-  CHECK(std::vector<int>(s.begin(), s.end()) == std::vector<int>{1, -2, 30});
+  CHECK(std::vector<int64_t>(s.begin(), s.end()) ==
+        std::vector<int64_t>{1, -2, 30});
+}
+
+TEST_CASE("Table of Strings with null") {
+  Table t = load_csv("data/corpus/strings_with_null.csv");
+  CHECK(t.strings(0)[1] == "");
+  CHECK(t.column(0).valid == std::vector<uint8_t>{1, 0});
+}
+
+TEST_CASE("Tabel of Double with null") {
+  Table t = load_csv("data/corpus/double_with_null.csv");
+  CHECK(std::isnan(t.doubles(1)[1]));
 }

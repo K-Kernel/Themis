@@ -205,7 +205,7 @@ inline Table slice_csv(Buffer csv, bool has_header) {
   return table;
 }
 
-inline Table load_csv(const std::string &path, bool has_header = false) {
+inline Table load_csv(const std::string &path, bool has_header = true) {
   Table t = slice_csv(read_csv(path), has_header);
   infer_types(t);
   return t;
