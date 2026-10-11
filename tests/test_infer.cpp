@@ -67,6 +67,8 @@ TEST_CASE("Null table") {
   Table t = typed("all_null.csv");
 
   CHECK(t.column(1).valid == std::vector<uint8_t>{0, 0});
+  CHECK(t.doubles(1).size() == 4);
+  CHECK(std::isnan(t.doubles(1)[1]));
 }
 
 TEST_CASE("Infering without proper loading") {

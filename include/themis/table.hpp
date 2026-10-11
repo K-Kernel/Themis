@@ -107,9 +107,8 @@ struct Table {
       out = std::get<std::vector<double>>(c.data);
     } else if (std::holds_alternative<std::vector<std::int64_t>>(c.data)) {
       const auto &values = std::get<std::vector<std::int64_t>>(c.data);
-      std::vector<double> copy_d{};
       for (int64_t i : values) {
-        copy_d.push_back(static_cast<double>(i));
+        out.push_back(static_cast<double>(i));
       }
     } else {
       throw std::logic_error("column " + column_name(col) + "is not numeric");
