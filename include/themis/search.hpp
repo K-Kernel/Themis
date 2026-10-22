@@ -35,12 +35,12 @@ inline ShortestPaths astar(const Graph &g, std::span<const double> weight,
 
   if (source >= g.num_nodes() ||
       (target != NO_TARGET && target >= g.num_nodes())) {
-    throw std::out_of_range("");
+    throw std::out_of_range("source its bigger than number of nodes");
   }
 
   for (double w : weight) {
     if (!(w >= 0)) {
-      throw std::invalid_argument("");
+      throw std::invalid_argument(" weight must be >= 0");
     }
   }
   ShortestPaths shortest_path{std::vector<double>(g.num_nodes(), UNREACHABLE),

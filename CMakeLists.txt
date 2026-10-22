@@ -30,7 +30,7 @@ include(FetchContent)
 FetchContent_Declare(doctest GIT_REPOSITORY https://github.com/doctest/doctest.git GIT_TAG v2.5.3)
 FetchContent_MakeAvailable(doctest)
 
-add_executable(tests tests/main.cpp tests/test_csv.cpp tests/test_infer.cpp tests/test_graph.cpp)
+add_executable(tests tests/main.cpp tests/test_csv.cpp tests/test_infer.cpp tests/test_graph.cpp tests/test_opt.cpp)
 
 target_compile_options(tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 target_link_libraries(tests PRIVATE doctest::doctest)
@@ -47,6 +47,14 @@ target_link_libraries(themis-flights PRIVATE themis)
 add_executable(themis-bench-graph tools/bench_graph.cpp)
 target_compile_options(themis-bench-graph PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 target_link_libraries(themis-bench-graph PRIVATE themis)
+
+add_executable(themis-meet examples/meet.cpp)
+target_compile_options(themis-meet PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+target_link_libraries(themis-meet PRIVATE themis)
+
+add_executable(themis-bench-opt tools/bench_opt.cpp)
+target_compile_options(themis-bench-opt PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+target_link_libraries(themis-bench-opt PRIVATE themis)
 
 enable_testing()
 add_test(NAME tests COMMAND tests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
