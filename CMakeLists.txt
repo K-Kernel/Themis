@@ -30,7 +30,7 @@ include(FetchContent)
 FetchContent_Declare(doctest GIT_REPOSITORY https://github.com/doctest/doctest.git GIT_TAG v2.5.3)
 FetchContent_MakeAvailable(doctest)
 
-add_executable(tests tests/main.cpp tests/test_csv.cpp tests/test_infer.cpp tests/test_graph.cpp tests/test_opt.cpp)
+add_executable(tests tests/main.cpp tests/test_csv.cpp tests/test_infer.cpp tests/test_graph.cpp tests/test_opt.cpp tests/test_metrics.cpp)
 
 target_compile_options(tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 target_link_libraries(tests PRIVATE doctest::doctest)

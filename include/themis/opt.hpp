@@ -47,7 +47,7 @@ struct Scores {
 
   std::span<const double> row(size_t i) const {
     if (i >= num_candidates()) {
-      throw std::out_of_range("index bigger than number of objectives");
+      throw std::out_of_range("index bigger than number of candidates");
     }
 
     return std::span<const double>(values).subspan(i * directions.size(),
@@ -67,7 +67,6 @@ inline bool dominates(std::span<const double> a, std::span<const double> b,
     throw std::invalid_argument("a and objectives differ in size");
   }
 
-  bool at_least_good{true};
   bool strictly_better{false};
   for (size_t i{0}; i < a.size(); ++i) {
     if (directions[i] == Direction::Min && a[i] > b[i]) {
@@ -82,7 +81,7 @@ inline bool dominates(std::span<const double> a, std::span<const double> b,
       strictly_better = true;
     }
   }
-  return at_least_good && strictly_better;
+  return strictly_better;
 }
 
 namespace detail {
@@ -108,7 +107,7 @@ inline void check_scores(const Scores &s, const std::string &who) {
 // Step 3. Indices of the candidates no other candidate dominates, in ascending
 // order. Calls detail::check_scores(s, "pareto_front") first.
 inline std::vector<size_t> pareto_front(const Scores &s) {
-  detail::check_scores(s, "pareto font");
+  detail::check_scores(s, "pareto_font");
   std::vector<size_t> front{};
 
   for (size_t i{0}; i < s.num_candidates(); ++i) {
