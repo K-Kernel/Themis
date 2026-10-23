@@ -107,7 +107,7 @@ inline void check_scores(const Scores &s, const std::string &who) {
 // Step 3. Indices of the candidates no other candidate dominates, in ascending
 // order. Calls detail::check_scores(s, "pareto_front") first.
 inline std::vector<size_t> pareto_front(const Scores &s) {
-  detail::check_scores(s, "pareto_font");
+  detail::check_scores(s, "pareto front");
   std::vector<size_t> front{};
 
   for (size_t i{0}; i < s.num_candidates(); ++i) {

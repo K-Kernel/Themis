@@ -89,7 +89,7 @@ inline double percentile(std::span<const double> xs, double p) {
   std::vector<double> xs_copy{xs.begin(), xs.end()};
   std::sort(xs_copy.begin(), xs_copy.end());
 
-  double rank{p / 100 * (xs.size() - 1)};
+  double rank{p / 100 * (static_cast<double>(xs.size()) - 1)};
   double lo = std::floor(rank);
   double hi = ceil(rank);
 
@@ -134,7 +134,8 @@ inline double gini(std::span<const double> xs) {
                  xs_copy[i];
   }
 
-  double denominator{xs.size() * (std::accumulate(xs.begin(), xs.end(), 0.0))};
+  double denominator{static_cast<double>(xs.size()) *
+                     (std::accumulate(xs.begin(), xs.end(), 0.0))};
 
   return numerator / denominator;
 }
