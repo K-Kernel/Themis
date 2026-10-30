@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <themis/metrics.hpp>
 #include <themis/opt.hpp>
+#include <string>
+#include <utility>
 #include <vector>
 
 using namespace themis;
@@ -64,7 +66,14 @@ TEST_CASE("jain: 1 for equal shares, 1 / n when one value holds everything") {
 }
 
 TEST_CASE("metrics reject empty and non-finite input") {
-  for (auto f : {&mean, &variance, &stddev, &median, &gini, &jain}) {
+  using Metric = double (*)(std::span<const double>);
+  const std::vector<std::pair<std::string, Metric>> metrics{
+      {"mean", &mean},     {"variance", &variance}, {"stddev", &stddev},
+      {"median", &median}, {"gini", &gini},         {"jain", &jain}};
+  for (const auto &entry : metrics) {
+    const std::string name = entry.first;
+    const Metric f = entry.second;
+    CAPTURE(name); // a failure below prints which metric it was
     CHECK_THROWS_AS(f(V{}), std::invalid_argument);
     CHECK_THROWS_AS(f(V{1, NaN}), std::invalid_argument);
     CHECK_THROWS_AS(f(V{1, INF}), std::invalid_argument);

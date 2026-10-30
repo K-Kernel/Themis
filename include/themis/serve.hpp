@@ -216,11 +216,31 @@ inline void add_routes(httplib::Server &server, const Model &m) {
 // the folder is missing: print a warning and carry on), prints the address and
 // blocks in server.listen(host, port). std::runtime_error when listen returns
 // false, which means the port is taken.
-inline void serve(const Model & /*m*/, int /*port*/,
-                  const std::string & /*shell_dir*/ = "shell",
-                  const std::string & /*host*/ = "127.0.0.1") {
 
-  throw std::logic_error("not written yet");
+inline void serve(const Model &m, int port,
+                  const std::string &shell_dir = "shell",
+                  const std::string &host = "127.0.0.1") {
+  httplib::Server svr;
+  // httplib defaults to SO_REUSEPORT, which lets a second server bind the same
+  // port and share the requests. SO_REUSEADDR alone makes the second bind fail
+  // instead.
+  svr.set_socket_options([](socket_t sock) {
+    int yes = 1;
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+  });
+  add_routes(svr, m);
+  if (!svr.set_mount_point("/", shell_dir)) {
+    std::fprintf(stderr,
+                 "serve: no folder '%s', serving only /schema and /solve\n",
+                 shell_dir.c_str());
+  }
+  if (!svr.bind_to_port(host, port)) {
+    throw std::runtime_error("serve: cannot listen on port " +
+                             std::to_string(port) +
+                             " (another server running?)");
+  }
+  std::printf("serving on http://%s:%d\n", host.c_str(), port);
+  std::fflush(stdout);
+  svr.listen_after_bind();
 }
-
 } // namespace themis

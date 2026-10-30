@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Themis</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 id="title">Themis</h1>
+    <span id="status"></span>
+  </header>
+  <main>
+    <section id="controls">
+      <h2>Weights</h2>
+      <div id="sliders"></div>
+      <fieldset id="method">
+        <label><input type="radio" name="method" value="chebyshev" checked> Chebyshev</label>
+        <label><input type="radio" name="method" value="weighted_sum"> Weighted sum</label>
+      </fieldset>
+      <h2>Pick</h2>
+      <div id="pick"></div>
+      <div id="detail"></div>
+    </section>
+    <section id="views">
+      <svg id="map" role="img" aria-label="Map of the front and the pick"></svg>
+      <div id="axes">
+        <label>x <select id="x-axis"></select></label>
+        <label>y <select id="y-axis"></select></label>
+      </div>
+      <svg id="front" role="img" aria-label="The Pareto front on two objectives"></svg>
+    </section>
+  </main>
+  <script src="world.js"></script>
+  <script src="draw.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
