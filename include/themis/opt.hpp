@@ -210,7 +210,7 @@ inline size_t pick(const Scores &s, std::span<const size_t> front,
     throw std::invalid_argument("Incorrect number of weights");
   }
 
-  for (double w : weights) {
+  for (const double &w : weights) {
     if (w < 0 || std::isnan(w) || std::isinf(w)) {
       throw std::invalid_argument("weight its invalid");
     } else if (w != 0) {
